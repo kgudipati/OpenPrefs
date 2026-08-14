@@ -247,6 +247,8 @@ export function validateDefinitions<const Definitions extends PreferenceDefiniti
   definitions: Definitions,
 ): PreferencesManifest<Definitions>;
 export function validateDefinitions(definitions: Record<string, unknown>): PreferencesManifest;
+// The implementation erases Definitions because it also accepts untrusted JSON records; the strict
+// overload remains sound because normalization preserves every validated id and value definition.
 export function validateDefinitions(definitions: Record<string, unknown>): PreferencesManifest {
   if (!isRecord(definitions)) {
     throw new ManifestError(

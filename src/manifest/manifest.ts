@@ -1,5 +1,7 @@
 import type { PreferenceDefinition, PreferenceDefinitions } from "./types";
 
+// This phantom brand carries Definitions; without it the generic is structurally unused and
+// PreferencesState inference widens to the base preference definition map.
 const manifestDefinitions: unique symbol = Symbol("OpenPrefs manifest definitions");
 
 /**
