@@ -1,5 +1,6 @@
-import { createPreferencesManifest, type PreferencesManifest } from "./manifest";
+import type { PreferencesManifest } from "./manifest";
 import type { PreferenceDefinitions } from "./types";
+import { validateDefinitions } from "./validateDefinitions";
 
 /**
  * Defines the semantic preferences exposed by a host application.
@@ -14,5 +15,5 @@ import type { PreferenceDefinitions } from "./types";
 export function definePreferences<const Definitions extends PreferenceDefinitions>(
   definitions: Definitions,
 ): PreferencesManifest<Definitions> {
-  return createPreferencesManifest(definitions);
+  return validateDefinitions(definitions);
 }

@@ -1,5 +1,6 @@
 import { ManifestError } from "../errors/manifestError";
-import { createPreferencesManifest, type PreferencesManifest } from "./manifest";
+import type { PreferencesManifest } from "./manifest";
+import { validateDefinitions } from "./validateDefinitions";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -36,5 +37,5 @@ export function parsePreferencesJson(input: unknown): PreferencesManifest {
     );
   }
 
-  return createPreferencesManifest(input.preferences);
+  return validateDefinitions(input.preferences);
 }
