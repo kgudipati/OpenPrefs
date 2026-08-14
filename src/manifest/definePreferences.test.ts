@@ -63,16 +63,22 @@ describe("definePreferences", () => {
       },
     });
 
+    type EnumPreferenceValue = PreferenceValue<{
+      type: "string";
+      description: "The density setting.";
+      enum: readonly ["compact", "comfortable"];
+    }>;
+    type StringPreferenceValue = PreferenceValue<{
+      type: "string";
+      description: "The display name.";
+    }>;
+
     expectTypeOf<PreferencesState<typeof manifest>>().toEqualTypeOf<{
       theme?: "light" | "dark";
     }>();
-    expectTypeOf<
-      PreferenceValue<{
-        type: "string";
-        description: "The density setting.";
-        enum: readonly ["compact", "comfortable"];
-      }>
-    >().toEqualTypeOf<"compact" | "comfortable">();
+    expectTypeOf<EnumPreferenceValue>().toEqualTypeOf<"compact" | "comfortable">();
+    expectTypeOf<EnumPreferenceValue>().not.toEqualTypeOf<string>();
+    expectTypeOf<StringPreferenceValue>().toEqualTypeOf<string>();
   });
 
   it("copies and deeply freezes the normalized manifest", () => {
