@@ -2,6 +2,18 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Distinguish sensitive from confirmation-required preferences
+
+- **Decision:** A sensitive preference requires confirmation only under global `"always"` or `"sensitive"` policy. Only `openPrefs.confirmation: "required"` is an unconditional preference-level floor that survives global `"never"`.
+- **Rationale:** Section 20 protects explicit confirmation requirements from weaker global policy. Making sensitivity an equal floor collapsed global `"sensitive"` and `"never"` into the same behavior, leaving the three-value mode with only two behaviors.
+- **Revisit when:** Evidence shows developers expect `openPrefs.sensitive` to be an unconditional confirmation floor.
+
+## 2026-08-14 — Reject partially invalid proposals as a whole
+
+- **Decision:** During v0.x, when proposal validation rejects any entry, policy rejects the entire request and withholds otherwise valid changes.
+- **Rationale:** Applying only a subset would perform something other than the resolver proposed without first making that difference explicit, violating the preview-over-surprise principle.
+- **Revisit when:** Real user demand for partial application justifies designing an explicit partial-preview and confirmation contract.
+
 ## 2026-08-13 — Require manifest tests and coverage
 
 - **Decision:** Remove Vitest's temporary `passWithNoTests` setting and enforce coverage across `src/` at 90% lines and 85% branches.

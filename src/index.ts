@@ -1,5 +1,7 @@
 export type { ManifestErrorCode } from "./errors/manifestError";
 export { ManifestError } from "./errors/manifestError";
+export type { PolicyErrorCode } from "./errors/policyError";
+export { PolicyError } from "./errors/policyError";
 export { definePreferences } from "./manifest/definePreferences";
 export type { PreferencesManifest } from "./manifest/manifest";
 export { parsePreferencesJson } from "./manifest/parseJson";
@@ -13,6 +15,13 @@ export type {
   PreferenceValue,
   StringPreferenceDefinition,
 } from "./manifest/types";
+export { evaluatePolicy } from "./policy/evaluatePolicy";
+export { resolvePolicy } from "./policy/resolvePolicy";
+export type {
+  OpenPrefsPolicy,
+  PolicyDecision,
+  PolicyRejectionReason,
+} from "./policy/types";
 export type { PreferenceChange, SettingsProposal } from "./proposal/types";
 export type {
   ProposalRejection,
