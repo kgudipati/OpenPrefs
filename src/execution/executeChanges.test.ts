@@ -21,6 +21,7 @@ function executeWith(adapter: object) {
 describe("executeChanges", () => {
   it.each([
     ["an explicit acknowledgement", { ok: true }],
+    ["an explicit acknowledgement with no failures", { ok: true, failed: [] }],
     ["additional success metadata", { ok: true, requestId: "host-1" }],
   ])("reports every change applied for %s", async (_name, result) => {
     const adapter = adapterReturning(result);
@@ -55,6 +56,39 @@ describe("executeChanges", () => {
     }
   });
 
+  it("treats a successful acknowledgement with failures as contradictory", async () => {
+    const execution = await executeWith(
+      adapterReturning({
+        ok: true,
+        failed: [{ id: "notifications", reason: "Permission denied." }],
+      }),
+    );
+
+    expect(execution).toEqual({
+      status: "failed",
+      error: "Adapter returned a malformed apply result.",
+      applied: [],
+      failed: [
+        { id: "theme", reason: "Adapter returned a malformed apply result." },
+        { id: "notifications", reason: "Adapter returned a malformed apply result." },
+      ],
+    });
+  });
+
+  it("treats a failed acknowledgement without failures as contradictory", async () => {
+    const execution = await executeWith(adapterReturning({ ok: false, failed: [] }));
+
+    expect(execution).toEqual({
+      status: "failed",
+      error: "Adapter returned a malformed apply result.",
+      applied: [],
+      failed: [
+        { id: "theme", reason: "Adapter returned a malformed apply result." },
+        { id: "notifications", reason: "Adapter returned a malformed apply result." },
+      ],
+    });
+  });
+
   it.each([
     ["a null result", null],
     ["an array result", []],
@@ -64,7 +98,6 @@ describe("executeChanges", () => {
     ["a failed acknowledgement without failures", { ok: false }],
     ["a non-array failed field", { ok: false, failed: true }],
     ["an explicitly undefined failed field", { ok: false, failed: undefined }],
-    ["an empty failed list", { ok: false, failed: [] }],
     ["a non-object failure", { ok: false, failed: [null] }],
     ["a failure without an id", { ok: false, failed: [{ reason: "No id." }] }],
     ["a failure without a reason", { ok: false, failed: [{ id: "theme" }] }],

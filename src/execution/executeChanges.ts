@@ -39,11 +39,19 @@ function normalizeResult(
   if (!okProperty.found || typeof okProperty.value !== "boolean") {
     return totalFailure(changes, malformedResultMessage);
   }
+
+  const failedProperty = readOwnDataProperty(result, "failed");
   if (okProperty.value) {
+    if (
+      failedProperty.found &&
+      Array.isArray(failedProperty.value) &&
+      failedProperty.value.length > 0
+    ) {
+      return totalFailure(changes, malformedResultMessage);
+    }
     return Object.freeze({ status: "applied", applied: freezeChanges(changes) });
   }
 
-  const failedProperty = readOwnDataProperty(result, "failed");
   if (
     !failedProperty.found ||
     !Array.isArray(failedProperty.value) ||
