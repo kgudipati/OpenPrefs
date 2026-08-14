@@ -6,7 +6,14 @@ Entries are ordered newest first.
 
 - **Decision:** `confirm(proposal)` accepts proposal data returned through the host and re-runs manifest validation and policy from scratch before execution. OpenPrefs stores no pending transaction, token, session, or confirmation ledger.
 - **Rationale:** Proposal data handed back by a host is untrusted input. Re-validation is safer than trusting remembered resolver output and avoids making OpenPrefs own infrastructure that belongs to the host.
+- **Host obligation:** Calling `confirm()` asserts that the user approved that exact proposal. OpenPrefs cannot verify that a confirmation UI was shown. Wiring `confirm()` to anything other than explicit user approval disables every confirmation policy.
 - **Revisit when:** A concrete host requirement cannot safely carry proposal data through its own confirmation flow.
+
+## 2026-08-14 — Report execution failures without rollback
+
+- **Decision:** OpenPrefs reports the adapter's actual applied and failed changes without attempting rollback, retries, transactions, or compensating writes. Hosts may provide their own atomic preference operation behind the adapter when their existing architecture supports one.
+- **Rationale:** OpenPrefs cannot safely reverse arbitrary host mutations or become a distributed transaction system. Accurate partial-failure reporting preserves the adapter boundary without claiming guarantees the host did not provide.
+- **Revisit when:** Concrete host demand demonstrates a portable rollback capability that can preserve adapter ownership and accurately define failure semantics across supported runtimes.
 
 ## 2026-08-14 — Distinguish sensitive from confirmation-required preferences
 

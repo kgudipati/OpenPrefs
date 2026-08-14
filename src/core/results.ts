@@ -1,12 +1,30 @@
-import type { ChangeExecutionResult } from "../execution/executeChanges";
+import type { ApplyFailure } from "../adapter/types";
 import type { PreferenceChange, SettingsProposal } from "../proposal/types";
 import type { ProposalRejection } from "../validation/validateProposal";
 
 /** Reports that every submitted preference change was applied. */
-export type AppliedResult = Extract<ChangeExecutionResult, { readonly status: "applied" }>;
+export interface AppliedResult {
+  /** Discriminates complete execution success. */
+  readonly status: "applied";
+
+  /** Every preference change the adapter applied. */
+  readonly applied: readonly PreferenceChange[];
+}
 
 /** Reports a total or partial execution failure without hiding successful changes. */
-export type FailedResult = Extract<ChangeExecutionResult, { readonly status: "failed" }>;
+export interface FailedResult {
+  /** Discriminates a failed or partially failed lifecycle outcome. */
+  readonly status: "failed";
+
+  /** A boundary-level explanation of the failure. */
+  readonly error: string;
+
+  /** Preference changes the adapter reported as successfully applied. */
+  readonly applied: readonly PreferenceChange[];
+
+  /** Preference changes the adapter reported as failed, with their host-provided reasons. */
+  readonly failed: readonly ApplyFailure[];
+}
 
 /** Describes a known preference value transition for a confirmation preview. */
 export interface PreferenceChangePreview {
@@ -40,7 +58,12 @@ export interface NeedsClarificationResult {
   /** Discriminates a request that needs more information. */
   readonly status: "needs_clarification";
 
-  /** The resolver-provided question for the user. */
+  /**
+   * The resolver-provided question for the user.
+   *
+   * This string is untrusted model output. Hosts MUST escape it before rendering. OpenPrefs does
+   * not sanitize it because presentation and output encoding belong to the host.
+   */
   readonly question: string;
 }
 

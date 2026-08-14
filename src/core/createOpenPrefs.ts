@@ -36,6 +36,10 @@ export interface OpenPrefs {
   /**
    * Revalidates and authorizes a previously returned proposal before execution.
    *
+   * Because confirmation is stateless, calling this method asserts that the user approved this
+   * exact proposal. OpenPrefs cannot verify that a confirmation UI was shown. Wiring `confirm()`
+   * to anything other than explicit user approval disables every confirmation policy.
+   *
    * @param proposal - Untrusted proposal data returned to the host for confirmation.
    * @returns A typed lifecycle result; the returned promise never rejects.
    */

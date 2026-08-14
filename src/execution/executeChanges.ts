@@ -1,21 +1,7 @@
 import type { ApplyFailure, PreferencesAdapter } from "../adapter/types";
+import type { AppliedResult, FailedResult } from "../core/results";
 import { errorMessage, isRecord, readOwnDataProperty } from "../internal/guards";
 import type { PreferenceChange } from "../proposal/types";
-
-interface AppliedExecutionResult {
-  readonly status: "applied";
-  readonly applied: readonly PreferenceChange[];
-}
-
-interface FailedExecutionResult {
-  readonly status: "failed";
-  readonly error: string;
-  readonly applied: readonly PreferenceChange[];
-  readonly failed: readonly ApplyFailure[];
-}
-
-/** Reports either complete application or an accurate total or partial failure. */
-export type ChangeExecutionResult = AppliedExecutionResult | FailedExecutionResult;
 
 const malformedResultMessage = "Adapter returned a malformed apply result.";
 
@@ -27,7 +13,7 @@ function freezeFailures(failures: readonly ApplyFailure[]): readonly ApplyFailur
   return Object.freeze(failures.map(({ id, reason }) => Object.freeze({ id, reason })));
 }
 
-function totalFailure(changes: readonly PreferenceChange[], reason: string): FailedExecutionResult {
+function totalFailure(changes: readonly PreferenceChange[], reason: string): FailedResult {
   return Object.freeze({
     status: "failed",
     error: reason,
@@ -39,7 +25,7 @@ function totalFailure(changes: readonly PreferenceChange[], reason: string): Fai
 function normalizeResult(
   changes: readonly PreferenceChange[],
   result: unknown,
-): ChangeExecutionResult {
+): AppliedResult | FailedResult {
   if (!isRecord(result)) {
     return totalFailure(changes, malformedResultMessage);
   }
@@ -100,7 +86,7 @@ function normalizeResult(
 export async function executeChanges(
   adapter: PreferencesAdapter,
   changes: readonly PreferenceChange[],
-): Promise<ChangeExecutionResult> {
+): Promise<AppliedResult | FailedResult> {
   try {
     const result: unknown = await adapter.apply(changes);
     return normalizeResult(changes, result);

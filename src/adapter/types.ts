@@ -5,7 +5,12 @@ export interface ApplyFailure {
   /** The stable preference id whose change failed. */
   readonly id: string;
 
-  /** A host-provided explanation of why the change failed. */
+  /**
+   * A host-provided explanation of why the change failed.
+   *
+   * This string is untrusted adapter output. Hosts MUST escape it before rendering. OpenPrefs does
+   * not sanitize it because presentation and output encoding belong to the host.
+   */
   readonly reason: string;
 }
 
