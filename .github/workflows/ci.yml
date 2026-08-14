@@ -53,7 +53,7 @@ jobs:
 
       - name: Enforce zero runtime dependencies
         run: |
-          node -e 'const p = require("./package.json"); if (Object.keys(p.dependencies ?? {}).length > 0) { console.error("Runtime dependencies are not allowed."); process.exit(1); }'
+          node -e 'const p = require("./package.json"); const fields = ["dependencies", "peerDependencies", "optionalDependencies", "bundleDependencies"]; const nonEmpty = fields.filter((field) => { const value = p[field]; return Array.isArray(value) ? value.length > 0 : value && typeof value === "object" ? Object.keys(value).length > 0 : Boolean(value); }); if (nonEmpty.length > 0) { console.error("Runtime dependency fields must be empty: " + nonEmpty.join(", ")); process.exit(1); }'
 
       - name: Verify
         run: npm run verify

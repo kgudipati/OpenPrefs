@@ -2,10 +2,10 @@
 
 Entries are ordered newest first.
 
-## 2026-08-13 — Keep Markdown and YAML outside Biome 2.5.8
+## 2026-08-13 — Leave Markdown and YAML unformatted
 
-- **Decision:** Do not add Markdown or YAML to Biome's check scope and do not add a second formatter.
-- **Rationale:** Biome 2.5.8 has no language handler for Markdown or YAML. Direct checks of `.md` and `.yml` files process zero files, and verbose project checks report YAML as an unknown language.
+- **Decision:** Markdown and YAML remain unformatted by choice under Biome 2.5.8. Do not add a second formatter to cover them.
+- **Rationale:** `biome check .` processes six files in this repository: three `.json` files and three `.ts` files. Biome 2.5.8 does not process Markdown and reports YAML as an unknown language.
 - **Revisit when:** Biome adds stable Markdown and YAML formatting and checking support.
 
 ## 2026-08-13 — Temporarily allow an empty test suite
