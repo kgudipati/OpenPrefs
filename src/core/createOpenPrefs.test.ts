@@ -2,7 +2,7 @@ import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import type { ApplyResult, PreferencesAdapter } from "../adapter/types";
 import { definePreferences } from "../manifest/definePreferences";
 import type { OpenPrefsPolicy } from "../policy/types";
-import type { PreferenceChange } from "../proposal/types";
+import type { PreferenceChange, SettingsProposal } from "../proposal/types";
 import type { PreferencesResolver, ResolveInput, ResolveResult } from "../resolver/types";
 import { createOpenPrefs, type OpenPrefs } from "./createOpenPrefs";
 import type { RejectedResult } from "./results";
@@ -268,13 +268,14 @@ describe("createOpenPrefs", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
-  it("turns a resolver exception into a typed failed result", async () => {
+  it("protects the no-mutation invariant when the resolver fails", async () => {
+    const apply = vi.fn(async () => ({}));
     const resolver: PreferencesResolver = {
       async resolve() {
         throw new Error("Resolver unavailable.");
       },
     };
-    const openPrefs = openPrefsFor({ resolver });
+    const openPrefs = openPrefsFor({ adapter: { apply }, resolver });
 
     await expect(openPrefs.request("Use dark mode")).resolves.toEqual({
       status: "failed",
@@ -282,6 +283,7 @@ describe("createOpenPrefs", () => {
       applied: [],
       failed: [],
     });
+    expect(apply).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -407,6 +409,10 @@ describe("createOpenPrefs", () => {
     if (result.status !== "confirmation_required") {
       return;
     }
+    expect(Object.isFrozen(result)).toBe(true);
+    expect(Object.isFrozen(result.proposal)).toBe(true);
+    expect(Object.isFrozen(result.proposal.changes)).toBe(true);
+    expect(result.proposal.changes.every((change) => Object.isFrozen(change))).toBe(true);
 
     await expect(openPrefs.confirm(result.proposal)).resolves.toEqual({
       status: "applied",
@@ -414,6 +420,23 @@ describe("createOpenPrefs", () => {
     });
     expect(adapter.applyCalls).toHaveLength(1);
     expect(adapter.state.theme).toBe("dark");
+  });
+
+  it("omits preview entries when current state lacks a changed preference", async () => {
+    const adapter = new StoreAdapter({ volume: 3 });
+    const openPrefs = openPrefsFor({
+      adapter,
+      resolver: new ScriptedResolver(resolved({ id: "theme", value: "dark" })),
+    });
+
+    const result = await openPrefs.request("Use dark mode");
+
+    expect(result).toEqual({
+      status: "confirmation_required",
+      proposal: { changes: [{ id: "theme", value: "dark" }] },
+      requiredBy: ["theme"],
+    });
+    expect(adapter.applyCalls).toHaveLength(0);
   });
 
   it("revalidates a proposal mutated between request and confirm", async () => {
@@ -427,14 +450,17 @@ describe("createOpenPrefs", () => {
     if (requested.status !== "confirmation_required") {
       return;
     }
-    const [change] = requested.proposal.changes;
+    const mutatedProposal: SettingsProposal = {
+      changes: requested.proposal.changes.map(({ id, value }) => ({ id, value })),
+    };
+    const [change] = mutatedProposal.changes;
     expect(change).toBeDefined();
     if (change === undefined) {
       return;
     }
     Reflect.set(change, "id", "invented.setting");
 
-    const confirmed = await openPrefs.confirm(requested.proposal);
+    const confirmed = await openPrefs.confirm(mutatedProposal);
 
     expect(confirmed).toMatchObject({
       status: "rejected",

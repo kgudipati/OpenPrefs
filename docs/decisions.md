@@ -2,6 +2,12 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Treat thrown adapter outcomes as total failure
+
+- **Decision:** When an adapter throws or rejects, OpenPrefs reports every submitted change as failed, even if the adapter mutated some preferences before throwing. An exception communicates no reliable per-change outcome. Adapters that can apply changes independently should catch internally and return a partial `failed` list instead.
+- **Rationale:** Guessing which writes completed would hide uncertainty as success. Conservative total-failure reporting keeps the result truthful about what OpenPrefs can establish while allowing adapters to provide accurate partial outcomes explicitly.
+- **Revisit when:** The adapter contract gains a portable thrown-error shape that can communicate authenticated per-change outcomes without ambiguity.
+
 ## 2026-08-14 — Keep confirmation stateless
 
 - **Decision:** `confirm(proposal)` accepts proposal data returned through the host and re-runs manifest validation and policy from scratch before execution. OpenPrefs stores no pending transaction, token, session, or confirmation ledger.

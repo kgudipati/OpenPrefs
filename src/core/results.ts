@@ -11,7 +11,12 @@ export interface AppliedResult {
   readonly applied: readonly PreferenceChange[];
 }
 
-/** Reports a total or partial execution failure without hiding successful changes. */
+/**
+ * Reports a total or partial execution failure without hiding successful changes.
+ *
+ * An empty `failed` list means no preference change was attempted. A populated `failed` list means
+ * the adapter was invoked, even when its thrown or malformed outcome prevents per-change accuracy.
+ */
 export interface FailedResult {
   /** Discriminates a failed or partially failed lifecycle outcome. */
   readonly status: "failed";
@@ -106,7 +111,12 @@ export interface TooManyChangesRejectedResult {
   readonly limit: number;
 }
 
-/** Reports a proposal refused because a change names an unexposed preference. */
+/**
+ * Reports a proposal refused because a change names an unexposed preference.
+ *
+ * This result is unreachable through the standard lifecycle because proposal validation rejects
+ * unknown ids first. The mapping remains as defense-in-depth for the policy boundary.
+ */
 export interface UnknownPreferenceRejectedResult {
   /** Discriminates a policy refusal. */
   readonly status: "rejected";

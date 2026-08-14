@@ -122,6 +122,24 @@ describe("executeChanges", () => {
     );
   });
 
+  it("preserves a thrown string as the adapter failure reason", async () => {
+    const adapter: PreferencesAdapter = {
+      apply: vi.fn(async () => {
+        throw "Host rejected the write.";
+      }),
+    };
+
+    await expect(executeChanges(adapter, changes)).resolves.toEqual({
+      status: "failed",
+      error: "Host rejected the write.",
+      applied: [],
+      failed: [
+        { id: "theme", reason: "Host rejected the write." },
+        { id: "notifications", reason: "Host rejected the write." },
+      ],
+    });
+  });
+
   it("uses a stable fallback when inspecting a hostile thrown value would throw", async () => {
     const hostileError = new Proxy(
       {},

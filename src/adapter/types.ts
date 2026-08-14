@@ -46,6 +46,11 @@ export interface PreferencesAdapter {
   /**
    * Invokes the host application's existing preference mutation logic.
    *
+   * If this method throws after partially applying changes, OpenPrefs reports every submitted
+   * change as failed because the exception communicates no per-change outcome. Adapters that can
+   * apply changes independently SHOULD catch failures internally and return a partial `failed`
+   * list instead of throwing.
+   *
    * @param changes - Changes already whitelisted, validated, policy-approved, and confirmed.
    * @returns Per-change failures; an absent or empty failure list reports complete success.
    */

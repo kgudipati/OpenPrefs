@@ -46,44 +46,48 @@ function failedResult(error: unknown, fallback: string): FailedResult {
 function rejectedResult(
   decision: Extract<PolicyDecision, { readonly outcome: "rejected" }>,
 ): RejectedResult {
-  if (decision.reason === "proposal_rejected") {
-    return Object.freeze({
-      status: "rejected",
-      reason: decision.reason,
-      changes: decision.changes,
-      rejections: decision.rejections,
-    });
+  switch (decision.reason) {
+    case "proposal_rejected":
+      return Object.freeze({
+        status: "rejected",
+        reason: decision.reason,
+        changes: decision.changes,
+        rejections: decision.rejections,
+      });
+    case "too_many_changes":
+      return Object.freeze({
+        status: "rejected",
+        reason: decision.reason,
+        changes: decision.changes,
+        count: decision.count,
+        limit: decision.limit,
+      });
+    case "unknown_preference":
+      return Object.freeze({
+        status: "rejected",
+        reason: decision.reason,
+        changes: decision.changes,
+      });
+    case "no_changes":
+      return Object.freeze({
+        status: "rejected",
+        reason: decision.reason,
+        changes: decision.changes,
+      });
+    default: {
+      const unhandledDecision: never = decision;
+      return unhandledDecision;
+    }
   }
-  if (decision.reason === "too_many_changes") {
-    return Object.freeze({
-      status: "rejected",
-      reason: decision.reason,
-      changes: decision.changes,
-      count: decision.count,
-      limit: decision.limit,
-    });
-  }
-  if (decision.reason === "unknown_preference") {
-    return Object.freeze({
-      status: "rejected",
-      reason: decision.reason,
-      changes: decision.changes,
-    });
-  }
-  return Object.freeze({
-    status: "rejected",
-    reason: decision.reason,
-    changes: decision.changes,
-  });
 }
 
 function confirmationResult(
   decision: Extract<PolicyDecision, { readonly outcome: "confirmation_required" }>,
   current?: Readonly<Record<string, unknown>>,
 ): ConfirmationRequiredResult {
-  const proposal: SettingsProposal = {
-    changes: decision.changes.map(({ id, value }) => ({ id, value })),
-  };
+  const proposal: SettingsProposal = Object.freeze({
+    changes: Object.freeze(decision.changes.map(({ id, value }) => Object.freeze({ id, value }))),
+  });
   const preview: PreferenceChangePreview[] = [];
   if (current !== undefined) {
     for (const { id, value } of decision.changes) {
