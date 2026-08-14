@@ -70,3 +70,26 @@ jobs:
 
       - name: Verify
         run: npm run verify
+
+      - name: Verify plain TypeScript example
+        env:
+          OPENAI_API_KEY: ""
+        run: |
+          npm ci --prefix examples/typescript
+          npm run verify --prefix examples/typescript
+          npm run demo --prefix examples/typescript -- "turn off marketing notifications and use dark mode"
+
+      - name: Verify Next.js example
+        run: |
+          npm ci --prefix examples/next
+          npm run verify --prefix examples/next
+
+      - name: Verify examples are excluded from the package
+        shell: bash
+        run: |
+          pack_output="$(npm pack --dry-run 2>&1)"
+          printf '%s\n' "$pack_output"
+          if printf '%s\n' "$pack_output" | grep -q 'examples/'; then
+            echo "Published package must not contain examples/."
+            exit 1
+          fi
