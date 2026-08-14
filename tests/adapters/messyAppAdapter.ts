@@ -196,6 +196,8 @@ export function createMessyAppAdapter(
             case "readingGuide":
               app.getAccessibilityContext().setReadingGuide(value);
               break;
+            default:
+              failed.push({ id, reason: "The host adapter does not handle this preference." });
           }
         } catch (error) {
           failed.push({ id, reason: failureReason(error) });
