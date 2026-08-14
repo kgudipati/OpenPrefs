@@ -2,6 +2,25 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Treat thrown adapter outcomes as total failure
+
+- **Decision:** When an adapter throws or rejects, OpenPrefs reports every submitted change as failed, even if the adapter mutated some preferences before throwing. An exception communicates no reliable per-change outcome. Adapters that can apply changes independently should catch internally and return a partial `failed` list instead.
+- **Rationale:** Guessing which writes completed would hide uncertainty as success. Conservative total-failure reporting keeps the result truthful about what OpenPrefs can establish while allowing adapters to provide accurate partial outcomes explicitly.
+- **Revisit when:** The adapter contract gains a portable thrown-error shape that can communicate authenticated per-change outcomes without ambiguity.
+
+## 2026-08-14 — Keep confirmation stateless
+
+- **Decision:** `confirm(proposal)` accepts proposal data returned through the host and re-runs manifest validation and policy from scratch before execution. OpenPrefs stores no pending transaction, token, session, or confirmation ledger.
+- **Rationale:** Proposal data handed back by a host is untrusted input. Re-validation is safer than trusting remembered resolver output and avoids making OpenPrefs own infrastructure that belongs to the host.
+- **Host obligation:** Calling `confirm()` asserts that the user approved that exact proposal. OpenPrefs cannot verify that a confirmation UI was shown. Wiring `confirm()` to anything other than explicit user approval disables every confirmation policy.
+- **Revisit when:** A concrete host requirement cannot safely carry proposal data through its own confirmation flow.
+
+## 2026-08-14 — Report execution failures without rollback
+
+- **Decision:** OpenPrefs reports the adapter's actual applied and failed changes without attempting rollback, retries, transactions, or compensating writes. Hosts may provide their own atomic preference operation behind the adapter when their existing architecture supports one.
+- **Rationale:** OpenPrefs cannot safely reverse arbitrary host mutations or become a distributed transaction system. Accurate partial-failure reporting preserves the adapter boundary without claiming guarantees the host did not provide.
+- **Revisit when:** Concrete host demand demonstrates a portable rollback capability that can preserve adapter ownership and accurately define failure semantics across supported runtimes.
+
 ## 2026-08-14 — Distinguish sensitive from confirmation-required preferences
 
 - **Decision:** A sensitive preference requires confirmation only under global `"always"` or `"sensitive"` policy. Only `openPrefs.confirmation: "required"` is an unconditional preference-level floor that survives global `"never"`.

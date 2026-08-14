@@ -79,3 +79,13 @@ export function createPreferencesManifest<const Definitions extends PreferenceDe
 ): PreferencesManifest<Definitions> {
   return new FrozenPreferencesManifest<Definitions>(definitions, ids);
 }
+
+/**
+ * Reports whether an unknown value is a manifest created by OpenPrefs.
+ *
+ * @param value - The configuration value to inspect.
+ * @returns `true` only for a normalized OpenPrefs manifest instance.
+ */
+export function isPreferencesManifest(value: unknown): value is PreferencesManifest {
+  return value instanceof FrozenPreferencesManifest;
+}

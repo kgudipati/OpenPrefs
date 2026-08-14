@@ -1,3 +1,4 @@
+import { isRecord, readOwnDataProperty } from "../internal/guards";
 import type { PreferencesManifest } from "../manifest/manifest";
 import type { PreferenceDefinition } from "../manifest/types";
 import type { PreferenceChange } from "../proposal/types";
@@ -49,24 +50,9 @@ type ValueValidationResult =
 
 const changeKeys = new Set<PropertyKey>(["id", "value"]);
 
-function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
 function hasExactKeys(value: object, expected: ReadonlySet<PropertyKey>): boolean {
   const keys = Reflect.ownKeys(value);
   return keys.length === expected.size && keys.every((key) => expected.has(key));
-}
-
-function readOwnDataProperty(
-  value: object,
-  key: PropertyKey,
-): { readonly found: boolean; readonly value?: unknown } {
-  const descriptor = Object.getOwnPropertyDescriptor(value, key);
-  if (descriptor === undefined || !("value" in descriptor)) {
-    return { found: false };
-  }
-  return { found: true, value: descriptor.value };
 }
 
 function reject(code: ProposalRejectionCode, message: string, id?: string): ProposalRejection {
