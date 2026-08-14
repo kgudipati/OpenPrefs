@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 20
+          - 22
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce zero runtime dependencies
+        run: |
+          node -e 'const p = require("./package.json"); if (Object.keys(p.dependencies ?? {}).length > 0) { console.error("Runtime dependencies are not allowed."); process.exit(1); }'
+
+      - name: Verify
+        run: npm run verify
