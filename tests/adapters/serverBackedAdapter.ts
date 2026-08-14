@@ -78,7 +78,8 @@ export function createServerBackedAdapter(
       }
 
       const response = await client.update(update);
-      return { failed: [...failed, ...response.rejected] };
+      const allFailures = [...failed, ...response.rejected];
+      return allFailures.length === 0 ? { ok: true } : { ok: false, failed: allFailures };
     },
   };
 }

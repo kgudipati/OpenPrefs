@@ -25,18 +25,30 @@ export interface ApplyFailure {
 }
 
 /**
- * Reports the per-change failures produced by a preferences adapter.
+ * Explicitly acknowledges whether a preferences adapter applied submitted changes.
  *
- * An absent or empty `failed` list means every submitted change applied. Additional fields are
- * permitted so existing host APIs can return their native success metadata.
+ * The index signatures deliberately permit a host to return its native result object with an
+ * `ok` acknowledgement instead of mapping away host-specific metadata. A failed acknowledgement
+ * must name every submitted change the host could not apply.
  */
-export interface ApplyResult {
-  /** Additional adapter-owned outcome metadata ignored by OpenPrefs. */
-  readonly [key: string]: unknown;
+export type ApplyResult =
+  | {
+      /** Affirms that every submitted change was applied. */
+      readonly ok: true;
 
-  /** The submitted changes that the host could not apply. */
-  readonly failed?: readonly ApplyFailure[];
-}
+      /** Additional host-owned result metadata ignored by OpenPrefs. */
+      readonly [key: string]: unknown;
+    }
+  | {
+      /** Affirms that at least one submitted change failed. */
+      readonly ok: false;
+
+      /** The submitted changes that the host could not apply. */
+      readonly failed: readonly ApplyFailure[];
+
+      /** Additional host-owned result metadata ignored by OpenPrefs. */
+      readonly [key: string]: unknown;
+    };
 
 /**
  * Connects OpenPrefs to a host application's existing preference operations.
@@ -51,8 +63,13 @@ export interface PreferencesAdapter<Manifest extends PreferencesManifest = Prefe
   /**
    * Reads the current values known for requested preference ids.
    *
-   * @param ids - Manifest-exposed preference ids whose current values may help resolution.
-   * @returns A record containing any current values the host can provide.
+   * OpenPrefs currently supplies every manifest id before resolution. Adapters MAY return any
+   * subset, omitting values that are expensive, unavailable, or inappropriate to expose to a
+   * resolver. Permanent read-capability metadata is deferred to a future JSON Schema `writeOnly`
+   * mechanism; omission currently means only that no usable current value was returned.
+   *
+   * @param ids - Every manifest-exposed preference id for the current request.
+   * @returns A record containing any subset of current values the host can provide.
    */
   readonly read?: (
     ids: readonly string[],
@@ -67,7 +84,7 @@ export interface PreferencesAdapter<Manifest extends PreferencesManifest = Prefe
    * list instead of throwing.
    *
    * @param changes - Changes already whitelisted, validated, policy-approved, and confirmed.
-   * @returns Per-change failures; an absent or empty failure list reports complete success.
+   * @returns An explicit success acknowledgement or a non-empty list of per-change failures.
    */
   readonly apply: (
     changes: readonly PreferenceChangeFor<Manifest>[],

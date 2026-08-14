@@ -35,11 +35,20 @@ function normalizeResult(
     return totalFailure(changes, malformedResultMessage);
   }
 
-  const failedProperty = readOwnDataProperty(result, "failed");
-  if (!failedProperty.found) {
+  const okProperty = readOwnDataProperty(result, "ok");
+  if (!okProperty.found || typeof okProperty.value !== "boolean") {
+    return totalFailure(changes, malformedResultMessage);
+  }
+  if (okProperty.value) {
     return Object.freeze({ status: "applied", applied: freezeChanges(changes) });
   }
-  if (!Array.isArray(failedProperty.value)) {
+
+  const failedProperty = readOwnDataProperty(result, "failed");
+  if (
+    !failedProperty.found ||
+    !Array.isArray(failedProperty.value) ||
+    failedProperty.value.length === 0
+  ) {
     return totalFailure(changes, malformedResultMessage);
   }
 
@@ -64,10 +73,6 @@ function normalizeResult(
     }
     failedIds.add(idProperty.value);
     failures.push({ id: idProperty.value, reason: reasonProperty.value });
-  }
-
-  if (failures.length === 0) {
-    return Object.freeze({ status: "applied", applied: freezeChanges(changes) });
   }
 
   return Object.freeze({
