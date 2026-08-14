@@ -2,6 +2,12 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Keep confirmation stateless
+
+- **Decision:** `confirm(proposal)` accepts proposal data returned through the host and re-runs manifest validation and policy from scratch before execution. OpenPrefs stores no pending transaction, token, session, or confirmation ledger.
+- **Rationale:** Proposal data handed back by a host is untrusted input. Re-validation is safer than trusting remembered resolver output and avoids making OpenPrefs own infrastructure that belongs to the host.
+- **Revisit when:** A concrete host requirement cannot safely carry proposal data through its own confirmation flow.
+
 ## 2026-08-14 — Distinguish sensitive from confirmation-required preferences
 
 - **Decision:** A sensitive preference requires confirmation only under global `"always"` or `"sensitive"` policy. Only `openPrefs.confirmation: "required"` is an unconditional preference-level floor that survives global `"never"`.

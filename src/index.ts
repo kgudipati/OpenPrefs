@@ -1,3 +1,20 @@
+export type { ApplyFailure, ApplyResult, PreferencesAdapter } from "./adapter/types";
+export type { CreateOpenPrefsOptions, OpenPrefs } from "./core/createOpenPrefs";
+export { createOpenPrefs } from "./core/createOpenPrefs";
+export type {
+  AppliedResult,
+  ConfirmationRequiredResult,
+  FailedResult,
+  NeedsClarificationResult,
+  NoChangesRejectedResult,
+  OpenPrefsResult,
+  PreferenceChangePreview,
+  ProposalRejectedResult,
+  RejectedResult,
+  TooManyChangesRejectedResult,
+  UnknownPreferenceRejectedResult,
+  UnsupportedResult,
+} from "./core/results";
 export type { ManifestErrorCode } from "./errors/manifestError";
 export { ManifestError } from "./errors/manifestError";
 export type { PolicyErrorCode } from "./errors/policyError";
@@ -23,6 +40,7 @@ export type {
   PolicyRejectionReason,
 } from "./policy/types";
 export type { PreferenceChange, SettingsProposal } from "./proposal/types";
+export type { PreferencesResolver, ResolveInput, ResolveResult } from "./resolver/types";
 export type {
   ProposalRejection,
   ProposalRejectionCode,

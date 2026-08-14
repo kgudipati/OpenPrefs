@@ -1,0 +1,232 @@
+import type { PreferencesAdapter } from "../adapter/types";
+import { executeChanges } from "../execution/executeChanges";
+import { errorMessage, isRecord, readOwnDataProperty } from "../internal/guards";
+import type { PreferencesManifest } from "../manifest/manifest";
+import { evaluatePolicy } from "../policy/evaluatePolicy";
+import type { OpenPrefsPolicy, PolicyDecision } from "../policy/types";
+import type { SettingsProposal } from "../proposal/types";
+import type { PreferencesResolver, ResolveInput } from "../resolver/types";
+import { validateProposal } from "../validation/validateProposal";
+import type {
+  ConfirmationRequiredResult,
+  FailedResult,
+  NeedsClarificationResult,
+  OpenPrefsResult,
+  PreferenceChangePreview,
+  RejectedResult,
+  UnsupportedResult,
+} from "./results";
+
+interface LifecycleBoundaries {
+  readonly preferences: PreferencesManifest;
+  readonly adapter: PreferencesAdapter;
+  readonly policy: OpenPrefsPolicy;
+}
+
+interface ProposalLifecycleInput extends LifecycleBoundaries {
+  readonly proposal: unknown;
+  readonly confirmed: boolean;
+  readonly current?: Readonly<Record<string, unknown>>;
+}
+
+interface RequestLifecycleInput extends LifecycleBoundaries {
+  readonly resolver: PreferencesResolver;
+  readonly text: string;
+}
+
+function failedResult(error: unknown, fallback: string): FailedResult {
+  return Object.freeze({
+    status: "failed",
+    error: errorMessage(error, fallback),
+    applied: Object.freeze([]),
+    failed: Object.freeze([]),
+  });
+}
+
+function rejectedResult(
+  decision: Extract<PolicyDecision, { readonly outcome: "rejected" }>,
+): RejectedResult {
+  if (decision.reason === "proposal_rejected") {
+    return Object.freeze({
+      status: "rejected",
+      reason: decision.reason,
+      changes: decision.changes,
+      rejections: decision.rejections,
+    });
+  }
+  if (decision.reason === "too_many_changes") {
+    return Object.freeze({
+      status: "rejected",
+      reason: decision.reason,
+      changes: decision.changes,
+      count: decision.count,
+      limit: decision.limit,
+    });
+  }
+  if (decision.reason === "unknown_preference") {
+    return Object.freeze({
+      status: "rejected",
+      reason: decision.reason,
+      changes: decision.changes,
+    });
+  }
+  return Object.freeze({
+    status: "rejected",
+    reason: decision.reason,
+    changes: decision.changes,
+  });
+}
+
+function confirmationResult(
+  decision: Extract<PolicyDecision, { readonly outcome: "confirmation_required" }>,
+  current?: Readonly<Record<string, unknown>>,
+): ConfirmationRequiredResult {
+  const proposal: SettingsProposal = {
+    changes: decision.changes.map(({ id, value }) => ({ id, value })),
+  };
+  const preview: PreferenceChangePreview[] = [];
+  if (current !== undefined) {
+    for (const { id, value } of decision.changes) {
+      const before = readOwnDataProperty(current, id);
+      if (before.found) {
+        preview.push(Object.freeze({ id, before: before.value, after: value }));
+      }
+    }
+  }
+
+  return Object.freeze({
+    status: "confirmation_required",
+    proposal,
+    requiredBy: decision.requiredBy,
+    ...(preview.length === 0 ? {} : { preview: Object.freeze(preview) }),
+  });
+}
+
+function normalizeCurrent(
+  value: unknown,
+  ids: readonly string[],
+): Readonly<Record<string, unknown>> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const current: Record<string, unknown> = {};
+  for (const id of ids) {
+    const property = readOwnDataProperty(value, id);
+    if (property.found) {
+      current[id] = property.value;
+    }
+  }
+  return Object.freeze(current);
+}
+
+async function readCurrent(
+  adapter: PreferencesAdapter,
+  ids: readonly string[],
+): Promise<Readonly<Record<string, unknown>> | undefined> {
+  try {
+    const read = adapter.read;
+    if (read === undefined) {
+      return undefined;
+    }
+    const value: unknown = await read.call(adapter, ids);
+    return normalizeCurrent(value, ids);
+  } catch {
+    return undefined;
+  }
+}
+
+function inspectResolution(
+  resolution: unknown,
+):
+  | { readonly kind: "proposal"; readonly proposal: unknown }
+  | { readonly kind: "result"; readonly result: NeedsClarificationResult | UnsupportedResult }
+  | { readonly kind: "malformed" } {
+  if (!isRecord(resolution)) {
+    return { kind: "malformed" };
+  }
+  const status = readOwnDataProperty(resolution, "status");
+  if (!status.found) {
+    return { kind: "malformed" };
+  }
+  if (status.value === "resolved") {
+    return { kind: "proposal", proposal: resolution };
+  }
+  if (status.value === "unsupported") {
+    return { kind: "result", result: Object.freeze({ status: "unsupported" }) };
+  }
+  if (status.value === "needs_clarification") {
+    const question = readOwnDataProperty(resolution, "question");
+    if (question.found && typeof question.value === "string") {
+      return {
+        kind: "result",
+        result: Object.freeze({ status: "needs_clarification", question: question.value }),
+      };
+    }
+  }
+  return { kind: "malformed" };
+}
+
+/**
+ * Runs untrusted proposal data through validation, policy, confirmation, and execution.
+ *
+ * @param input - Trusted lifecycle boundaries plus untrusted proposal data and confirmation state.
+ * @returns A typed lifecycle result; the returned promise never rejects.
+ */
+export async function runProposal(input: ProposalLifecycleInput): Promise<OpenPrefsResult> {
+  try {
+    const validation = validateProposal(input.preferences, input.proposal);
+    const decision = evaluatePolicy({
+      manifest: input.preferences,
+      policy: input.policy,
+      changes: validation.changes,
+      rejections: validation.rejections,
+    });
+
+    if (decision.outcome === "rejected") {
+      return rejectedResult(decision);
+    }
+    if (decision.outcome === "confirmation_required" && !input.confirmed) {
+      return confirmationResult(decision, input.current);
+    }
+    return await executeChanges(input.adapter, decision.changes);
+  } catch (error) {
+    return failedResult(error, "OpenPrefs failed while processing the proposal.");
+  }
+}
+
+/**
+ * Runs natural-language intent through optional read context, resolution, and proposal processing.
+ *
+ * @param input - Trusted lifecycle boundaries, the resolver, and natural-language request text.
+ * @returns A typed lifecycle result; the returned promise never rejects.
+ */
+export async function runRequest(input: RequestLifecycleInput): Promise<OpenPrefsResult> {
+  try {
+    if (typeof input.text !== "string") {
+      return failedResult(input.text, "OpenPrefs request text must be a string.");
+    }
+    const current = await readCurrent(input.adapter, input.preferences.ids());
+    const resolverInput: ResolveInput = {
+      text: input.text,
+      preferences: input.preferences,
+      ...(current === undefined ? {} : { current }),
+    };
+    const resolution: unknown = await input.resolver.resolve(resolverInput);
+    const inspected = inspectResolution(resolution);
+    if (inspected.kind === "malformed") {
+      return failedResult(resolution, "Resolver returned a malformed result.");
+    }
+    if (inspected.kind === "result") {
+      return inspected.result;
+    }
+    return await runProposal({
+      ...input,
+      proposal: inspected.proposal,
+      confirmed: false,
+      ...(current === undefined ? {} : { current }),
+    });
+  } catch (error) {
+    return failedResult(error, "Resolver failed while processing the request.");
+  }
+}
