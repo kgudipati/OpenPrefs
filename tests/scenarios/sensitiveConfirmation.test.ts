@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { createOpenPrefs, definePreferences } from "../../src/index";
+import { createOpenPrefs, definePreferences, type PreferencesAdapter } from "../../src/index";
 import { createMessyAppAdapter, messyAppPreferences } from "../adapters/messyAppAdapter";
 import { createMessyApp } from "../apps/messyApp/app";
 import { ScriptedResolver } from "../resolvers/scriptedResolver";
@@ -47,9 +47,13 @@ describe("section 32: sensitive preference confirmation", () => {
         openPrefs: { sensitive: true },
       },
     });
+    const messyAdapter = createMessyAppAdapter(app);
+    const sensitiveOnlyAdapter: PreferencesAdapter<typeof sensitiveOnlyPreferences> = {
+      apply: (changes) => messyAdapter.apply(changes),
+    };
     const openPrefs = createOpenPrefs({
       preferences: sensitiveOnlyPreferences,
-      adapter: createMessyAppAdapter(app),
+      adapter: sensitiveOnlyAdapter,
       resolver: new ScriptedResolver(sensitiveRequest),
       policy: { confirmation: "never" },
     });

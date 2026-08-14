@@ -28,7 +28,7 @@
   },
   "scripts": {
     "build": "tsup",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit --project tsconfig.tests.json",
     "lint": "biome check .",
     "format": "biome check --write .",
     "test": "vitest run",
