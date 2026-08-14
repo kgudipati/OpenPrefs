@@ -2,6 +2,24 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Accept eager full-manifest reads in v0.x
+
+- **Decision:** Before resolution, OpenPrefs asks the adapter to read every manifest preference id. Adapters spanning multiple host backends may therefore fan out to unrelated stores or remote APIs for a request that ultimately changes one preference.
+- **Rationale:** The resolver has not selected candidate preferences when current state is gathered. Keeping one optional `read(ids)` operation preserves a small, framework-agnostic boundary while the integration suite establishes whether eager reads become a material problem in real hosts.
+- **Revisit when:** Production integrations demonstrate unacceptable latency, cost, or data exposure from reading a complete manifest, or when a portable pre-resolution mechanism can safely narrow the requested ids.
+
+## 2026-08-14 — Represent unavailable current values by omission in v0.x
+
+- **Decision:** A partial adapter read signals write-only, missing, or temporarily unavailable preference state by omitting the preference id. The resolver receives no reason code distinguishing those cases, and confirmation previews include only values actually returned by the adapter.
+- **Rationale:** Read support is optional progressive enhancement. Key omission lets resolvers degrade to clarification or another safe result without requiring hosts to adopt a richer availability protocol.
+- **Revisit when:** Resolver or host integrations need materially different behavior for write-only, missing, and temporarily unavailable values, and a portable status shape can be defined without making OpenPrefs own host state.
+
+## 2026-08-14 — Trust failure-only adapter results in v0.x
+
+- **Decision:** OpenPrefs treats every submitted change absent from `ApplyResult.failed` as applied. Consequently, an adapter that silently performs no work and returns `{}` produces an `"applied"` result even though host state did not change.
+- **Rationale:** The adapter is a trusted host boundary, and OpenPrefs cannot portably verify arbitrary writes, require a read-back path, or infer success from host-specific response metadata. Failure-only reporting keeps the minimal contract compatible with synchronous setters and async APIs.
+- **Revisit when:** A real host cannot reliably enumerate failures, integrations produce indeterminate native outcomes, or positive per-change acknowledgements prove portable across the supported host shapes.
+
 ## 2026-08-14 — Treat thrown adapter outcomes as total failure
 
 - **Decision:** When an adapter throws or rejects, OpenPrefs reports every submitted change as failed, even if the adapter mutated some preferences before throwing. An exception communicates no reliable per-change outcome. Adapters that can apply changes independently should catch internally and return a partial `failed` list instead.

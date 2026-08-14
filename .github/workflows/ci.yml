@@ -55,5 +55,18 @@ jobs:
         run: |
           node -e 'const p = require("./package.json"); const fields = ["dependencies", "peerDependencies", "optionalDependencies", "bundleDependencies"]; const nonEmpty = fields.filter((field) => { const value = p[field]; return Array.isArray(value) ? value.length > 0 : value && typeof value === "object" ? Object.keys(value).length > 0 : Boolean(value); }); if (nonEmpty.length > 0) { console.error("Runtime dependency fields must be empty: " + nonEmpty.join(", ")); process.exit(1); }'
 
+      - name: Enforce portable core imports and globals
+        shell: bash
+        run: |
+          if grep -RInE "node:|(from|import|require)[[:space:](]+['\"](assert|buffer|child_process|cluster|crypto|dgram|dns|events|fs|http|https|module|net|os|path|perf_hooks|process|querystring|readline|stream|string_decoder|timers|tls|tty|url|util|v8|vm|worker_threads|zlib)([/:'\"])" src; then
+            echo "Files under src/ must not import Node.js built-ins."
+            exit 1
+          fi
+
+          if grep -RInE "(window|document|navigator|localStorage|sessionStorage)[[:space:]]*[.[]|(typeof|instanceof)[[:space:]]+(window|document|navigator|localStorage|sessionStorage)|(fetch|requestAnimationFrame|cancelAnimationFrame)[[:space:]]*\(|new[[:space:]]+(Blob|File|FileReader|FormData|HTMLElement|XMLHttpRequest)" src; then
+            echo "Files under src/ must not reference DOM globals."
+            exit 1
+          fi
+
       - name: Verify
         run: npm run verify
