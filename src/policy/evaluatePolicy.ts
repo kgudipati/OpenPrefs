@@ -1,4 +1,5 @@
 import type { PreferencesManifest } from "../manifest/manifest";
+import type { OpenPrefsMetadata } from "../manifest/types";
 import type { PreferenceChange } from "../proposal/types";
 import type { ProposalRejection } from "../validation/validateProposal";
 import type { OpenPrefsPolicy, PolicyDecision } from "./types";
@@ -10,9 +11,9 @@ function freezeChanges(changes: readonly PreferenceChange[]): readonly Preferenc
 /**
  * Decides whether a validated request is refused, needs confirmation, or may be applied.
  *
- * Preference-level sensitivity and explicit confirmation are mandatory floors: global policy can
- * add confirmation but can never suppress either requirement. The function performs no I/O and
- * does not mutate the manifest, policy, changes, or rejections it receives.
+ * Global policy gates sensitivity, while an explicit preference-level confirmation requirement is
+ * an unconditional floor. The function performs no I/O and does not mutate the manifest, policy,
+ * changes, or rejections it receives.
  *
  * @param input - The trusted manifest, resolved policy, validated changes, and validation failures.
  * @returns A frozen decision that covers the entire request without executing any change.
@@ -35,6 +36,19 @@ export function evaluatePolicy(input: {
     });
   }
 
+  const metadataById = new Map<string, OpenPrefsMetadata | undefined>();
+  for (const change of changes) {
+    const definition = manifest.get(change.id);
+    if (definition === undefined) {
+      return Object.freeze({
+        outcome: "rejected",
+        reason: "unknown_preference",
+        changes: decisionChanges,
+      });
+    }
+    metadataById.set(change.id, definition.openPrefs);
+  }
+
   if (changes.length > policy.maxChangesPerRequest) {
     return Object.freeze({
       outcome: "rejected",
@@ -55,14 +69,13 @@ export function evaluatePolicy(input: {
 
   const requiredBy: string[] = [];
   for (const change of changes) {
-    const metadata = manifest.get(change.id)?.openPrefs;
-    const globallyRequired =
+    const metadata = metadataById.get(change.id);
+    const requiresConfirmation =
       policy.confirmation === "always" ||
-      (policy.confirmation === "sensitive" && metadata?.sensitive === true);
-    const preferenceRequired =
-      metadata?.confirmation === "required" || metadata?.sensitive === true;
+      (policy.confirmation === "sensitive" && metadata?.sensitive === true) ||
+      metadata?.confirmation === "required";
 
-    if (globallyRequired || preferenceRequired) {
+    if (requiresConfirmation) {
       requiredBy.push(change.id);
     }
   }

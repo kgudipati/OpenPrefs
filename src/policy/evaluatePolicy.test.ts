@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import { definePreferences } from "../manifest/definePreferences";
 import type { PreferenceChange } from "../proposal/types";
 import type { ProposalRejection } from "../validation/validateProposal";
@@ -111,7 +111,12 @@ function expectedDecision(
     };
   }
 
-  const requiresConfirmation = testCase.mode === "always" || testCase.marking !== "unmarked";
+  const sensitiveUnderSensitiveMode =
+    testCase.mode === "sensitive" &&
+    (testCase.marking === "sensitive" || testCase.marking === "both");
+  const explicitlyRequired = testCase.marking === "required" || testCase.marking === "both";
+  const requiresConfirmation =
+    testCase.mode === "always" || sensitiveUnderSensitiveMode || explicitlyRequired;
   if (requiresConfirmation) {
     return {
       outcome: "confirmation_required",
@@ -140,10 +145,7 @@ describe("evaluatePolicy", () => {
   );
 
   it("protects strongest-requirement-wins: global never cannot suppress preference confirmation", () => {
-    const changes: PreferenceChange[] = [
-      { id: "sensitive.one", value: true },
-      { id: "required.one", value: true },
-    ];
+    const changes: PreferenceChange[] = [{ id: "required.one", value: true }];
 
     const decision = evaluatePolicy({
       manifest,
@@ -155,8 +157,30 @@ describe("evaluatePolicy", () => {
     expect(decision).toEqual({
       outcome: "confirmation_required",
       changes,
-      requiredBy: ["sensitive.one", "required.one"],
+      requiredBy: ["required.one"],
     });
+  });
+
+  it("gives all global modes distinct behavior profiles across unmarked and sensitive preferences", () => {
+    const outcomeFor = (mode: OpenPrefsPolicy["confirmation"], marking: "unmarked" | "sensitive") =>
+      evaluatePolicy({
+        manifest,
+        policy: resolvePolicy({ confirmation: mode }),
+        changes: changesFor(marking, 1),
+        rejections: [],
+      }).outcome;
+
+    const profiles = modes.map((mode) => ({
+      mode,
+      outcomes: [outcomeFor(mode, "unmarked"), outcomeFor(mode, "sensitive")],
+    }));
+
+    expect(profiles).toEqual([
+      { mode: "always", outcomes: ["confirmation_required", "confirmation_required"] },
+      { mode: "sensitive", outcomes: ["apply", "confirmation_required"] },
+      { mode: "never", outcomes: ["apply", "apply"] },
+    ]);
+    expect(new Set(profiles.map(({ outcomes }) => outcomes.join(":"))).size).toBe(3);
   });
 
   it("lists only the preference ids that triggered confirmation", () => {
@@ -177,7 +201,24 @@ describe("evaluatePolicy", () => {
     expect(decision).toEqual({
       outcome: "confirmation_required",
       changes,
-      requiredBy: ["sensitive.one", "required.one", "both.one"],
+      requiredBy: ["required.one", "both.one"],
+    });
+  });
+
+  it("fails closed when a change names a preference outside the manifest", () => {
+    const changes: PreferenceChange[] = [{ id: "missing", value: true }];
+
+    const decision = evaluatePolicy({
+      manifest,
+      policy: resolvePolicy({ confirmation: "never" }),
+      changes,
+      rejections: [],
+    });
+
+    expect(decision).toEqual({
+      outcome: "rejected",
+      reason: "unknown_preference",
+      changes,
     });
   });
 
@@ -235,5 +276,40 @@ describe("evaluatePolicy", () => {
     expect(decision.changes).not.toBe(changes);
     expect(changes).toEqual([{ id: "unmarked.one", value: true }]);
     expect(rejections).toEqual([]);
+  });
+
+  it("keeps rejected decisions discriminated by reason-specific fields", () => {
+    type RejectedDecision = Extract<PolicyDecision, { readonly outcome: "rejected" }>;
+    type ProposalRejectedDecision = Extract<
+      RejectedDecision,
+      { readonly reason: "proposal_rejected" }
+    >;
+    type TooManyChangesDecision = Extract<
+      RejectedDecision,
+      { readonly reason: "too_many_changes" }
+    >;
+    type UnknownPreferenceDecision = Extract<
+      RejectedDecision,
+      { readonly reason: "unknown_preference" }
+    >;
+
+    expectTypeOf<ProposalRejectedDecision>().toEqualTypeOf<{
+      readonly outcome: "rejected";
+      readonly reason: "proposal_rejected";
+      readonly changes: readonly PreferenceChange[];
+      readonly rejections: readonly ProposalRejection[];
+    }>();
+    expectTypeOf<TooManyChangesDecision>().toEqualTypeOf<{
+      readonly outcome: "rejected";
+      readonly reason: "too_many_changes";
+      readonly changes: readonly PreferenceChange[];
+      readonly count: number;
+      readonly limit: number;
+    }>();
+    expectTypeOf<UnknownPreferenceDecision>().toEqualTypeOf<{
+      readonly outcome: "rejected";
+      readonly reason: "unknown_preference";
+      readonly changes: readonly PreferenceChange[];
+    }>();
   });
 });

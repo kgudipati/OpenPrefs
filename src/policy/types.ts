@@ -11,7 +11,11 @@ export interface OpenPrefsPolicy {
 }
 
 /** Identifies why policy refused to let a request proceed. */
-export type PolicyRejectionReason = "proposal_rejected" | "too_many_changes" | "no_changes";
+export type PolicyRejectionReason =
+  | "proposal_rejected"
+  | "unknown_preference"
+  | "too_many_changes"
+  | "no_changes";
 
 /**
  * Describes whether validated preference changes may proceed or need user confirmation.
@@ -65,6 +69,16 @@ export type PolicyDecision =
 
       /** The configured maximum number of changes allowed in one request. */
       readonly limit: number;
+    }
+  | {
+      /** Refuses a request containing a preference that the manifest does not expose. */
+      readonly outcome: "rejected";
+
+      /** The stable reason for refusing a change that bypassed manifest validation. */
+      readonly reason: "unknown_preference";
+
+      /** The complete change set withheld because at least one preference is unknown. */
+      readonly changes: readonly PreferenceChange[];
     }
   | {
       /** Refuses a request that contains no validated changes. */
