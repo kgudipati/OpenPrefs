@@ -9,15 +9,17 @@ import { runProposal, runRequest } from "./lifecycle";
 import type { OpenPrefsResult } from "./results";
 
 /** Configures the trusted host boundaries used by one OpenPrefs instance. */
-export interface CreateOpenPrefsOptions {
+export interface CreateOpenPrefsOptions<
+  Manifest extends PreferencesManifest = PreferencesManifest,
+> {
   /** The normalized whitelist of preferences OpenPrefs may propose. */
-  readonly preferences: PreferencesManifest;
+  readonly preferences: Manifest;
 
   /** The host application's existing preference read and mutation operations. */
-  readonly adapter: PreferencesAdapter;
+  readonly adapter: PreferencesAdapter<NoInfer<Manifest>> | PreferencesAdapter;
 
   /** The application-supplied natural-language resolver implementation. */
-  readonly resolver: PreferencesResolver;
+  readonly resolver: PreferencesResolver<NoInfer<Manifest>> | PreferencesResolver;
 
   /** Optional confirmation and request-limit policy overrides. */
   readonly policy?: Partial<OpenPrefsPolicy>;
@@ -54,14 +56,16 @@ export interface OpenPrefs {
   apply(changes: readonly PreferenceChange[]): Promise<OpenPrefsResult>;
 }
 
-interface ValidatedConfiguration {
-  readonly preferences: PreferencesManifest;
-  readonly adapter: PreferencesAdapter;
-  readonly resolver: PreferencesResolver;
+interface ValidatedConfiguration<Manifest extends PreferencesManifest> {
+  readonly preferences: Manifest;
+  readonly adapter: PreferencesAdapter<Manifest> | PreferencesAdapter;
+  readonly resolver: PreferencesResolver<Manifest> | PreferencesResolver;
   readonly policy: OpenPrefsPolicy;
 }
 
-function validateConfiguration(options: CreateOpenPrefsOptions): ValidatedConfiguration {
+function validateConfiguration<Manifest extends PreferencesManifest>(
+  options: CreateOpenPrefsOptions<Manifest>,
+): ValidatedConfiguration<Manifest> {
   if (!isRecord(options)) {
     throw new TypeError("OpenPrefs configuration must be an object.");
   }
@@ -93,7 +97,9 @@ function validateConfiguration(options: CreateOpenPrefsOptions): ValidatedConfig
  * @returns A frozen, stateless lifecycle API whose asynchronous methods never reject.
  * @throws {TypeError} When the manifest, adapter, resolver, or configuration shape is invalid.
  */
-export function createOpenPrefs(options: CreateOpenPrefsOptions): OpenPrefs {
+export function createOpenPrefs<const Manifest extends PreferencesManifest>(
+  options: CreateOpenPrefsOptions<Manifest>,
+): OpenPrefs {
   const configuration = validateConfiguration(options);
 
   return Object.freeze({

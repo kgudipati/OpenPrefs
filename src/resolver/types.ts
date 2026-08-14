@@ -1,16 +1,16 @@
 import type { PreferencesManifest } from "../manifest/manifest";
-import type { SettingsProposal } from "../proposal/types";
+import type { PreferenceChangeFor, PreferencesState } from "../manifest/types";
 
 /** Supplies natural-language intent and trusted preference context to a resolver. */
-export interface ResolveInput {
+export interface ResolveInput<Manifest extends PreferencesManifest = PreferencesManifest> {
   /** The user's unmodified natural-language request. */
   readonly text: string;
 
   /** The complete whitelist of preferences the resolver may select from. */
-  readonly preferences: PreferencesManifest;
+  readonly preferences: Manifest;
 
   /** Current host values when the adapter can provide them safely. */
-  readonly current?: Readonly<Record<string, unknown>>;
+  readonly current?: Readonly<PreferencesState<Manifest>>;
 }
 
 /**
@@ -19,13 +19,13 @@ export interface ResolveInput {
  * Resolved changes remain untrusted until OpenPrefs validates them against the manifest. A
  * resolver must ask for clarification or report unsupported intent rather than invent a setting.
  */
-export type ResolveResult =
+export type ResolveResult<Manifest extends PreferencesManifest = PreferencesManifest> =
   | {
       /** Reports that the resolver selected a candidate preference proposal. */
       readonly status: "resolved";
 
       /** Untrusted candidate changes that must cross the validation boundary. */
-      readonly changes: SettingsProposal["changes"];
+      readonly changes: readonly PreferenceChangeFor<Manifest>[];
     }
   | {
       /** Reports that the resolver needs more information before proposing a change. */
@@ -44,12 +44,12 @@ export type ResolveResult =
  *
  * OpenPrefs provides this contract but no implementation, model runtime, or inference SDK.
  */
-export interface PreferencesResolver {
+export interface PreferencesResolver<Manifest extends PreferencesManifest = PreferencesManifest> {
   /**
    * Resolves user intent against only the preference capabilities supplied by OpenPrefs.
    *
    * @param input - Natural-language text, the manifest whitelist, and optional current values.
    * @returns A proposed change set, a clarification question, or an unsupported outcome.
    */
-  resolve(input: ResolveInput): Promise<ResolveResult>;
+  readonly resolve: (input: ResolveInput<Manifest>) => Promise<ResolveResult<Manifest>>;
 }

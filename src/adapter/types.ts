@@ -1,4 +1,14 @@
-import type { PreferenceChange } from "../proposal/types";
+import type { PreferencesManifest } from "../manifest/manifest";
+import type { PreferenceChangeFor, PreferencesState } from "../manifest/types";
+
+// This erased invariant brand prevents an adapter typed for one manifest from satisfying another
+// manifest's boundary while leaving the default loose adapter structurally implementable.
+declare const adapterManifest: unique symbol;
+
+type AdapterState<Manifest extends PreferencesManifest> =
+  string extends PreferenceChangeFor<Manifest>["id"]
+    ? Readonly<Record<string, unknown>>
+    : Readonly<PreferencesState<Manifest>>;
 
 /** Describes one preference change that an adapter could not apply. */
 export interface ApplyFailure {
@@ -34,14 +44,19 @@ export interface ApplyResult {
  * Applying changes is required. Reading current values is optional progressive enhancement used
  * for resolver context and confirmation previews; the adapter owns neither policy nor validation.
  */
-export interface PreferencesAdapter {
+export interface PreferencesAdapter<Manifest extends PreferencesManifest = PreferencesManifest> {
+  /** Retains the manifest type invariant without adding a runtime property. */
+  readonly [adapterManifest]?: (manifest: Manifest) => Manifest;
+
   /**
    * Reads the current values known for requested preference ids.
    *
    * @param ids - Manifest-exposed preference ids whose current values may help resolution.
    * @returns A record containing any current values the host can provide.
    */
-  read?(ids: readonly string[]): Promise<Record<string, unknown>>;
+  readonly read?: (
+    ids: readonly string[],
+  ) => AdapterState<Manifest> | Promise<AdapterState<Manifest>>;
 
   /**
    * Invokes the host application's existing preference mutation logic.
@@ -54,5 +69,7 @@ export interface PreferencesAdapter {
    * @param changes - Changes already whitelisted, validated, policy-approved, and confirmed.
    * @returns Per-change failures; an absent or empty failure list reports complete success.
    */
-  apply(changes: readonly PreferenceChange[]): Promise<ApplyResult>;
+  readonly apply: (
+    changes: readonly PreferenceChangeFor<Manifest>[],
+  ) => ApplyResult | Promise<ApplyResult>;
 }
