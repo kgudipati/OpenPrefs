@@ -7,6 +7,29 @@ on:
   pull_request:
 
 jobs:
+  conventions:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate pull request title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        shell: bash
+        run: |
+          title_pattern='^(feat|fix|chore|docs|test|refactor|build|ci)\((manifest|validation|policy|execution|adapter|resolver|core|skill|evals|examples|docs|ci|deps)\)!?: [a-z0-9].*$'
+          subject="${PR_TITLE#*: }"
+
+          if [[ ! "$PR_TITLE" =~ $title_pattern ]]; then
+            echo "PR title must match <type>(<scope>): <subject>."
+            exit 1
+          fi
+
+          if [[ "$subject" == *. ]] || (( ${#subject} > 72 )); then
+            echo "PR subject must have no trailing period and be at most 72 characters."
+            exit 1
+          fi
+
   verify:
     runs-on: ubuntu-latest
     strategy:

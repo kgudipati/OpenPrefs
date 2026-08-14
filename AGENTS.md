@@ -2,6 +2,8 @@
 
 OpenPrefs is a semantic layer that turns natural-language intent into validated changes against an application's existing preference system. It is headless and framework-agnostic: the host application retains ownership of its settings architecture, persistence, user experience, and execution environment.
 
+All contributions must follow the engineering practices in [`CONVENTIONS.md`](./CONVENTIONS.md).
+
 ## Runtime primitives
 
 - **Manifest** describes which preferences exist and which capabilities are exposed. It does not own persistence.

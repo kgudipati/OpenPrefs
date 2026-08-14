@@ -1,5 +1,7 @@
 # Contributing to OpenPrefs
 
+Read and follow [`CONVENTIONS.md`](./CONVENTIONS.md) before making a change.
+
 Install the development dependencies with:
 
 ```sh
