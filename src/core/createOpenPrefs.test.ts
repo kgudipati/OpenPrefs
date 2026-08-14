@@ -65,7 +65,7 @@ class StoreAdapter implements PreferencesAdapter {
     for (const { id, value } of changes) {
       this.state[id] = value;
     }
-    return {};
+    return { ok: true };
   }
 }
 
@@ -78,6 +78,10 @@ class AsyncStoreAdapter extends StoreAdapter {
 
 function resolved(...changes: readonly PreferenceChange[]): ResolveResult {
   return { status: "resolved", changes };
+}
+
+function successfulApply() {
+  return vi.fn(async (): Promise<ApplyResult> => ({ ok: true }));
 }
 
 function openPrefsFor(input: {
@@ -141,7 +145,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("works with an adapter that does not implement read", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const resolver = new ScriptedResolver(resolved({ id: "theme", value: "dark" }));
     const openPrefs = openPrefsFor({
       adapter: { apply },
@@ -156,7 +160,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("continues without current state when adapter read throws", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const resolver = new ScriptedResolver(resolved({ id: "theme", value: "dark" }));
     const adapter: PreferencesAdapter = {
       async read() {
@@ -177,7 +181,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("continues without current state when adapter read returns a malformed value", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const resolver = new ScriptedResolver(resolved({ id: "theme", value: "dark" }));
     const openPrefs = createFromUnknown({
       preferences,
@@ -198,7 +202,7 @@ describe("createOpenPrefs", () => {
         return { theme: undefined, invented: true };
       },
       async apply() {
-        return {};
+        return { ok: true };
       },
     };
     const openPrefs = openPrefsFor({
@@ -214,7 +218,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("returns a resolver clarification question without applying", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver({
@@ -233,7 +237,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("returns unsupported intent without inventing or applying a setting", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver({ status: "unsupported" }),
@@ -244,7 +248,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("rejects a hallucinated preference id and never calls the adapter", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver(resolved({ id: "invented.setting", value: true })),
@@ -269,7 +273,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("protects the no-mutation invariant when the resolver fails", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const resolver: PreferencesResolver = {
       async resolve() {
         throw new Error("Resolver unavailable.");
@@ -294,7 +298,7 @@ describe("createOpenPrefs", () => {
   ])("turns %s from the resolver into a typed failed result", async (_name, resolution) => {
     const openPrefs = createFromUnknown({
       preferences,
-      adapter: { apply: vi.fn(async () => ({})) },
+      adapter: { apply: successfulApply() },
       resolver: { resolve: async () => resolution },
     });
 
@@ -307,7 +311,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("turns a malformed resolved proposal into a diagnostic rejection", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = createFromUnknown({
       preferences,
       adapter: { apply },
@@ -344,7 +348,10 @@ describe("createOpenPrefs", () => {
     const openPrefs = openPrefsFor({
       adapter: {
         async apply() {
-          return { failed: [{ id: "notifications", reason: "Permission denied." }] };
+          return {
+            ok: false,
+            failed: [{ id: "notifications", reason: "Permission denied." }],
+          };
         },
       },
       resolver: new ScriptedResolver(
@@ -379,7 +386,7 @@ describe("createOpenPrefs", () => {
 
   it("accepts additional adapter success metadata", async () => {
     const openPrefs = openPrefsFor({
-      adapter: { apply: async () => ({ success: true }) },
+      adapter: { apply: async () => ({ ok: true, success: true }) },
       resolver: new ScriptedResolver(resolved({ id: "theme", value: "dark" })),
       policy: { confirmation: "never" },
     });
@@ -440,7 +447,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("revalidates a proposal mutated between request and confirm", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver(resolved({ id: "theme", value: "dark" })),
@@ -490,7 +497,7 @@ describe("createOpenPrefs", () => {
       policy: { confirmation: "never" } satisfies Partial<OpenPrefsPolicy>,
     },
   ])("never calls adapter.apply for a $name rejection", async ({ result, policy }) => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver(result),
@@ -504,7 +511,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("runs direct changes through confirmation before applying", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver({ status: "unsupported" }),
@@ -524,7 +531,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("applies direct validated changes immediately when policy allows", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver({ status: "unsupported" }),
@@ -538,7 +545,7 @@ describe("createOpenPrefs", () => {
   });
 
   it("returns a typed rejection for malformed confirmation input", async () => {
-    const apply = vi.fn(async () => ({}));
+    const apply = successfulApply();
     const openPrefs = openPrefsFor({
       adapter: { apply },
       resolver: new ScriptedResolver({ status: "unsupported" }),
@@ -569,7 +576,7 @@ describe("createOpenPrefs", () => {
       "a non-manifest preferences value",
       {
         preferences: {},
-        adapter: { apply: async () => ({}) },
+        adapter: { apply: async () => ({ ok: true }) },
         resolver: { resolve: async () => ({}) },
       },
     ],
@@ -581,13 +588,13 @@ describe("createOpenPrefs", () => {
       "a non-function adapter read",
       {
         preferences,
-        adapter: { read: true, apply: async () => ({}) },
+        adapter: { read: true, apply: async () => ({ ok: true }) },
         resolver: { resolve: async () => ({}) },
       },
     ],
     [
       "a resolver without resolve",
-      { preferences, adapter: { apply: async () => ({}) }, resolver: {} },
+      { preferences, adapter: { apply: async () => ({ ok: true }) }, resolver: {} },
     ],
   ])("throws at construction time for %s", (_name, options) => {
     expect(() => createFromUnknown(options)).toThrow(TypeError);
@@ -597,7 +604,7 @@ describe("createOpenPrefs", () => {
     expect(() =>
       createFromUnknown({
         preferences,
-        adapter: { apply: async () => ({}) },
+        adapter: { apply: async () => ({ ok: true }) },
         resolver: { resolve: async () => ({ status: "unsupported" }) },
         policy: { confirmation: "sometimes" },
       }),

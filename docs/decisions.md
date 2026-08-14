@@ -2,6 +2,14 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Require explicit adapter acknowledgement
+
+- **Decision:** `ApplyResult` requires an affirmative `ok` discriminator. `{ ok: true }` acknowledges complete success. `{ ok: false, failed: [...] }` reports a non-empty set of per-change failures. Missing, non-boolean, contradictory, or malformed acknowledgement data is a total failure.
+- **Rationale:** Success must not be inferred from missing information at the trusted host boundary. A positive acknowledgement closes the silent-no-op path while preserving native host metadata and accurate partial-failure reporting.
+- **Evidence:** Phase 5 falsification demonstrated that an adapter could perform zero mutations, return `{}`, and cause OpenPrefs to report every submitted change as applied.
+- **Deferred:** OpenPrefs does not add read-back verification, value-availability states, or per-change success receipts. Those mechanisms would widen the host contract without evidence that they are portable.
+- **Revisit when:** Real host APIs cannot provide a reliable request-level acknowledgement without discarding essential native outcome semantics.
+
 ## 2026-08-14 — Accept eager full-manifest reads in v0.x
 
 - **Decision:** Before resolution, OpenPrefs asks the adapter to read every manifest preference id. Adapters spanning multiple host backends may therefore fan out to unrelated stores or remote APIs for a request that ultimately changes one preference.
@@ -16,8 +24,10 @@ Entries are ordered newest first.
 
 ## 2026-08-14 — Trust failure-only adapter results in v0.x
 
+- **Status:** Superseded by [Require explicit adapter acknowledgement](#2026-08-14--require-explicit-adapter-acknowledgement).
 - **Decision:** OpenPrefs treats every submitted change absent from `ApplyResult.failed` as applied. Consequently, an adapter that silently performs no work and returns `{}` produces an `"applied"` result even though host state did not change.
 - **Rationale:** The adapter is a trusted host boundary, and OpenPrefs cannot portably verify arbitrary writes, require a read-back path, or infer success from host-specific response metadata. Failure-only reporting keeps the minimal contract compatible with synchronous setters and async APIs.
+- **Superseding evidence:** Phase 5 falsification supplied an executable silent-no-op adapter that returned `{}` and proved this contract could report success without a host mutation.
 - **Revisit when:** A real host cannot reliably enumerate failures, integrations produce indeterminate native outcomes, or positive per-change acknowledgements prove portable across the supported host shapes.
 
 ## 2026-08-14 — Treat thrown adapter outcomes as total failure

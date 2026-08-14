@@ -5,7 +5,7 @@ import { parsePreferencesJson } from "../manifest/parseJson";
 import type { PreferenceChangeFor, PreferencesState } from "../manifest/types";
 import type { PreferenceChange } from "../proposal/types";
 import type { PreferencesResolver, ResolveInput } from "../resolver/types";
-import type { PreferencesAdapter } from "./types";
+import type { ApplyResult, PreferencesAdapter } from "./types";
 
 const preferences = definePreferences({
   theme: {
@@ -46,6 +46,19 @@ const typedResolver: PreferencesResolver<typeof preferences> = {
 };
 
 describe("manifest-derived host boundary types", () => {
+  it("requires adapters to acknowledge success or failure explicitly", () => {
+    const success: ApplyResult = { ok: true, nativeRequestId: "host-1" };
+    const failure: ApplyResult = {
+      ok: false,
+      failed: [{ id: "theme", reason: "Host write failed." }],
+      nativeRequestId: "host-2",
+    };
+    // @ts-expect-error success cannot be inferred from a missing acknowledgement.
+    const missingAcknowledgement: ApplyResult = {};
+
+    expect([success, failure, missingAcknowledgement]).toHaveLength(3);
+  });
+
   it("derives a discriminated change union and narrows value through id", () => {
     expectTypeOf<TypedChange>().toEqualTypeOf<
       | { readonly id: "theme"; readonly value: "light" | "dark" | "system" }
@@ -60,7 +73,7 @@ describe("manifest-derived host boundary types", () => {
         for (const change of changes) {
           expectNarrowedValue(change);
         }
-        return {};
+        return { ok: true };
       },
     };
 
@@ -85,7 +98,7 @@ describe("manifest-derived host boundary types", () => {
     });
     const contradictoryAdapter: PreferencesAdapter<typeof otherPreferences> = {
       apply() {
-        return {};
+        return { ok: true };
       },
     };
 
@@ -106,7 +119,7 @@ describe("manifest-derived host boundary types", () => {
     const adapter: PreferencesAdapter<typeof parsed> = {
       apply(changes) {
         expectTypeOf(changes).toEqualTypeOf<readonly PreferenceChange[]>();
-        return {};
+        return { ok: true };
       },
     };
     const resolver: PreferencesResolver<typeof parsed> = {
@@ -135,7 +148,7 @@ describe("manifest-derived host boundary types", () => {
     const adapter: PreferencesAdapter = {
       apply(changes) {
         expectTypeOf(changes).toEqualTypeOf<readonly PreferenceChange[]>();
-        return {};
+        return { ok: true };
       },
     };
 

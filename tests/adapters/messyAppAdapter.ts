@@ -204,7 +204,7 @@ export function createMessyAppAdapter(
         }
       }
 
-      return { failed };
+      return failed.length === 0 ? { ok: true } : { ok: false, failed };
     },
   };
 }

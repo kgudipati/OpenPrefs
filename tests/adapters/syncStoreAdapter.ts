@@ -55,7 +55,7 @@ export function createSyncStoreAdapter(): PreferencesAdapter<typeof syncStorePre
             break;
         }
       }
-      return { failed: [] };
+      return { ok: true };
     },
   };
 }

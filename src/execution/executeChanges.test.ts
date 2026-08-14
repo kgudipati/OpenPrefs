@@ -20,9 +20,9 @@ function executeWith(adapter: object) {
 
 describe("executeChanges", () => {
   it.each([
-    ["an empty result", {}],
-    ["an empty failed list", { failed: [] }],
-    ["additional success metadata", { success: true }],
+    ["an explicit acknowledgement", { ok: true }],
+    ["an explicit acknowledgement with no failures", { ok: true, failed: [] }],
+    ["additional success metadata", { ok: true, requestId: "host-1" }],
   ])("reports every change applied for %s", async (_name, result) => {
     const adapter = adapterReturning(result);
 
@@ -37,6 +37,7 @@ describe("executeChanges", () => {
 
   it("reports partial failure and computes applied changes by failed id", async () => {
     const adapter = adapterReturning({
+      ok: false,
       failed: [{ id: "notifications", reason: "Permission denied.", hostCode: 403 }],
       requestId: "host-1",
     });
@@ -55,18 +56,56 @@ describe("executeChanges", () => {
     }
   });
 
+  it("treats a successful acknowledgement with failures as contradictory", async () => {
+    const execution = await executeWith(
+      adapterReturning({
+        ok: true,
+        failed: [{ id: "notifications", reason: "Permission denied." }],
+      }),
+    );
+
+    expect(execution).toEqual({
+      status: "failed",
+      error: "Adapter returned a malformed apply result.",
+      applied: [],
+      failed: [
+        { id: "theme", reason: "Adapter returned a malformed apply result." },
+        { id: "notifications", reason: "Adapter returned a malformed apply result." },
+      ],
+    });
+  });
+
+  it("treats a failed acknowledgement without failures as contradictory", async () => {
+    const execution = await executeWith(adapterReturning({ ok: false, failed: [] }));
+
+    expect(execution).toEqual({
+      status: "failed",
+      error: "Adapter returned a malformed apply result.",
+      applied: [],
+      failed: [
+        { id: "theme", reason: "Adapter returned a malformed apply result." },
+        { id: "notifications", reason: "Adapter returned a malformed apply result." },
+      ],
+    });
+  });
+
   it.each([
     ["a null result", null],
     ["an array result", []],
-    ["a non-array failed field", { failed: true }],
-    ["an explicitly undefined failed field", { failed: undefined }],
-    ["a non-object failure", { failed: [null] }],
-    ["a failure without an id", { failed: [{ reason: "No id." }] }],
-    ["a failure without a reason", { failed: [{ id: "theme" }] }],
-    ["an unknown failed id", { failed: [{ id: "missing", reason: "Missing." }] }],
+    ["a missing acknowledgement", {}],
+    ["a legacy success field", { success: true }],
+    ["a non-boolean acknowledgement", { ok: "yes" }],
+    ["a failed acknowledgement without failures", { ok: false }],
+    ["a non-array failed field", { ok: false, failed: true }],
+    ["an explicitly undefined failed field", { ok: false, failed: undefined }],
+    ["a non-object failure", { ok: false, failed: [null] }],
+    ["a failure without an id", { ok: false, failed: [{ reason: "No id." }] }],
+    ["a failure without a reason", { ok: false, failed: [{ id: "theme" }] }],
+    ["an unknown failed id", { ok: false, failed: [{ id: "missing", reason: "Missing." }] }],
     [
       "a duplicate failed id",
       {
+        ok: false,
         failed: [
           { id: "theme", reason: "First." },
           { id: "theme", reason: "Second." },

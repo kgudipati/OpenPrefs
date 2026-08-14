@@ -32,7 +32,7 @@ describe("sections 13 and 29: relative change", () => {
   it("degrades to clarification when the same sync-store adapter has no read path", async () => {
     resetSyncSettings({ fontSize: "medium" });
     const fullAdapter = createSyncStoreAdapter();
-    const readlessAdapter: PreferencesAdapter = {
+    const readlessAdapter: PreferencesAdapter<typeof syncStorePreferences> = {
       apply: (changes) => fullAdapter.apply(changes),
     };
     const resolver = new ScriptedResolver({
