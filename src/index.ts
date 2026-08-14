@@ -13,3 +13,10 @@ export type {
   PreferenceValue,
   StringPreferenceDefinition,
 } from "./manifest/types";
+export type { PreferenceChange, SettingsProposal } from "./proposal/types";
+export type {
+  ProposalRejection,
+  ProposalRejectionCode,
+  ProposalValidationResult,
+} from "./validation/validateProposal";
+export { validateProposal } from "./validation/validateProposal";
