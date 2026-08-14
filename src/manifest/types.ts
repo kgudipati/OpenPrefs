@@ -93,6 +93,43 @@ export type PreferenceValue<Definition extends PreferenceDefinition> =
         : never;
 
 /**
+ * Derives the discriminated preference-change union exposed by a manifest.
+ *
+ * Each manifest id is paired with the value type produced by {@link PreferenceValue}, preserving
+ * enum literals so narrowing on `id` also narrows `value`.
+ *
+ * @example
+ * ```ts
+ * const preferences = definePreferences({
+ *   theme: {
+ *     type: "string",
+ *     description: "The application color theme.",
+ *     enum: ["light", "dark", "system"],
+ *   },
+ *   compactMode: {
+ *     type: "boolean",
+ *     description: "Whether the application uses a compact layout.",
+ *   },
+ * });
+ *
+ * type Change = PreferenceChangeFor<typeof preferences>;
+ * // Equivalent to:
+ * type Expected =
+ *   | { readonly id: "theme"; readonly value: "light" | "dark" | "system" }
+ *   | { readonly id: "compactMode"; readonly value: boolean };
+ * ```
+ */
+export type PreferenceChangeFor<Manifest extends PreferencesManifest> =
+  Manifest extends PreferencesManifest<infer Definitions>
+    ? {
+        readonly [Id in keyof Definitions & string]: {
+          readonly id: Id;
+          readonly value: PreferenceValue<Definitions[Id]>;
+        };
+      }[keyof Definitions & string]
+    : never;
+
+/**
  * Produces the partial state shape described by a normalized manifest.
  *
  * Each preference id maps to the value type of its definition; omitted ids represent values that

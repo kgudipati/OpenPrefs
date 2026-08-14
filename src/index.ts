@@ -26,6 +26,7 @@ export type {
   BooleanPreferenceDefinition,
   NumberPreferenceDefinition,
   OpenPrefsMetadata,
+  PreferenceChangeFor,
   PreferenceDefinition,
   PreferenceDefinitions,
   PreferencesState,

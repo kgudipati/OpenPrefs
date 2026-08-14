@@ -1,9 +1,7 @@
-import { definePreferences, type PreferencesAdapter } from "../../src/index";
+import { definePreferences, type PreferencesAdapter, type PreferencesState } from "../../src/index";
 import {
   type MessyApp,
-  type MessyFontSize,
   type MessyRemotePreferenceId,
-  type MessyTheme,
   readFontSize,
   readShowTips,
   readSidebarWidth,
@@ -97,14 +95,6 @@ function isRemoteId(id: string): id is MessyRemotePreferenceId {
   return remoteIds.has(id);
 }
 
-function isTheme(value: unknown): value is MessyTheme {
-  return value === "light" || value === "dark" || value === "system";
-}
-
-function isFontSize(value: unknown): value is MessyFontSize {
-  return value === "small" || value === "medium" || value === "large";
-}
-
 function failureReason(error: unknown): string {
   return error instanceof Error ? error.message : "The host setting update failed.";
 }
@@ -115,10 +105,12 @@ function failureReason(error: unknown): string {
  * This intentionally ugly switch is section 38 glue. Do not "clean it up" into a shared settings
  * abstraction or migrate the host application's existing architecture to suit OpenPrefs.
  */
-export function createMessyAppAdapter(app: MessyApp): PreferencesAdapter {
+export function createMessyAppAdapter(
+  app: MessyApp,
+): PreferencesAdapter<typeof messyAppPreferences> {
   return {
     async read(ids) {
-      const current: Record<string, unknown> = {};
+      const current: PreferencesState<typeof messyAppPreferences> = {};
       const store = app.store.getState();
       const context = app.getAccessibilityContext();
       const requestedRemoteIds: MessyRemotePreferenceId[] = [];
@@ -163,43 +155,26 @@ export function createMessyAppAdapter(app: MessyApp): PreferencesAdapter {
     async apply(changes) {
       const failed: { readonly id: string; readonly reason: string }[] = [];
 
-      for (const { id, value } of changes) {
+      for (const change of changes) {
+        const { id, value } = change;
         try {
           switch (id) {
             case "theme":
-              if (!isTheme(value)) {
-                throw new TypeError("The host received an invalid theme.");
-              }
               app.store.setTheme(value);
               break;
             case "compactMode":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid compact-mode value.");
-              }
               app.store.setCompactMode(value);
               break;
             case "reducedMotion":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid reduced-motion value.");
-              }
               app.store.setReducedMotion(value);
               break;
             case "fontSize":
-              if (!isFontSize(value)) {
-                throw new TypeError("The host received an invalid font size.");
-              }
               writeFontSize(app.storage, value);
               break;
             case "showTips":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid tips value.");
-              }
               writeShowTips(app.storage, value);
               break;
             case "sidebarWidth":
-              if (typeof value !== "number") {
-                throw new TypeError("The host received an invalid sidebar width.");
-              }
               writeSidebarWidth(app.storage, value);
               break;
             case "notifyDirectMessages":
@@ -207,37 +182,22 @@ export function createMessyAppAdapter(app: MessyApp): PreferencesAdapter {
             case "notifyComments":
             case "notifyFollows":
             case "notifyMarketing":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid notification value.");
-              }
               await app.remote.update({ [id]: value });
               break;
             case "digestFrequencyHours":
-              if (typeof value !== "number") {
-                throw new TypeError("The host received an invalid digest frequency.");
-              }
               await app.remote.update({ digestFrequencyHours: value });
               break;
             case "diagnosticUploadsEnabled":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid diagnostic-upload value.");
-              }
               await app.remote.update({ diagnosticUploadsEnabled: value });
               break;
             case "highContrast":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid high-contrast value.");
-              }
               app.getAccessibilityContext().setHighContrast(value);
               break;
             case "readingGuide":
-              if (typeof value !== "boolean") {
-                throw new TypeError("The host received an invalid reading-guide value.");
-              }
               app.getAccessibilityContext().setReadingGuide(value);
               break;
             default:
-              throw new Error("The host does not expose this setting.");
+              failed.push({ id, reason: "The host adapter does not handle this preference." });
           }
         } catch (error) {
           failed.push({ id, reason: failureReason(error) });

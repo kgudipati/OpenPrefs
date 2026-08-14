@@ -2,6 +2,7 @@ import type { PreferencesAdapter } from "../adapter/types";
 import { executeChanges } from "../execution/executeChanges";
 import { errorMessage, isRecord, readOwnDataProperty } from "../internal/guards";
 import type { PreferencesManifest } from "../manifest/manifest";
+import type { PreferencesState } from "../manifest/types";
 import { evaluatePolicy } from "../policy/evaluatePolicy";
 import type { OpenPrefsPolicy, PolicyDecision } from "../policy/types";
 import type { SettingsProposal } from "../proposal/types";
@@ -17,20 +18,22 @@ import type {
   UnsupportedResult,
 } from "./results";
 
-interface LifecycleBoundaries {
-  readonly preferences: PreferencesManifest;
-  readonly adapter: PreferencesAdapter;
+interface LifecycleBoundaries<Manifest extends PreferencesManifest> {
+  readonly preferences: Manifest;
+  readonly adapter: PreferencesAdapter<Manifest> | PreferencesAdapter;
   readonly policy: OpenPrefsPolicy;
 }
 
-interface ProposalLifecycleInput extends LifecycleBoundaries {
+interface ProposalLifecycleInput<Manifest extends PreferencesManifest>
+  extends LifecycleBoundaries<Manifest> {
   readonly proposal: unknown;
   readonly confirmed: boolean;
-  readonly current?: Readonly<Record<string, unknown>>;
+  readonly current?: Readonly<PreferencesState<Manifest>>;
 }
 
-interface RequestLifecycleInput extends LifecycleBoundaries {
-  readonly resolver: PreferencesResolver;
+interface RequestLifecycleInput<Manifest extends PreferencesManifest>
+  extends LifecycleBoundaries<Manifest> {
+  readonly resolver: PreferencesResolver<Manifest> | PreferencesResolver;
   readonly text: string;
 }
 
@@ -106,10 +109,11 @@ function confirmationResult(
   });
 }
 
-function normalizeCurrent(
+function normalizeCurrent<Manifest extends PreferencesManifest>(
   value: unknown,
   ids: readonly string[],
-): Readonly<Record<string, unknown>> | undefined {
+): Readonly<PreferencesState<Manifest>> | undefined;
+function normalizeCurrent(value: unknown, ids: readonly string[]): Readonly<object> | undefined {
   if (!isRecord(value)) {
     return undefined;
   }
@@ -124,17 +128,17 @@ function normalizeCurrent(
   return Object.freeze(current);
 }
 
-async function readCurrent(
-  adapter: PreferencesAdapter,
+async function readCurrent<Manifest extends PreferencesManifest>(
+  adapter: PreferencesAdapter<Manifest> | PreferencesAdapter,
   ids: readonly string[],
-): Promise<Readonly<Record<string, unknown>> | undefined> {
+): Promise<Readonly<PreferencesState<Manifest>> | undefined> {
   try {
     const read = adapter.read;
     if (read === undefined) {
       return undefined;
     }
     const value: unknown = await read.call(adapter, ids);
-    return normalizeCurrent(value, ids);
+    return normalizeCurrent<Manifest>(value, ids);
   } catch {
     return undefined;
   }
@@ -177,7 +181,9 @@ function inspectResolution(
  * @param input - Trusted lifecycle boundaries plus untrusted proposal data and confirmation state.
  * @returns A typed lifecycle result; the returned promise never rejects.
  */
-export async function runProposal(input: ProposalLifecycleInput): Promise<OpenPrefsResult> {
+export async function runProposal<Manifest extends PreferencesManifest>(
+  input: ProposalLifecycleInput<Manifest>,
+): Promise<OpenPrefsResult> {
   try {
     const validation = validateProposal(input.preferences, input.proposal);
     const decision = evaluatePolicy({
@@ -205,13 +211,15 @@ export async function runProposal(input: ProposalLifecycleInput): Promise<OpenPr
  * @param input - Trusted lifecycle boundaries, the resolver, and natural-language request text.
  * @returns A typed lifecycle result; the returned promise never rejects.
  */
-export async function runRequest(input: RequestLifecycleInput): Promise<OpenPrefsResult> {
+export async function runRequest<Manifest extends PreferencesManifest>(
+  input: RequestLifecycleInput<Manifest>,
+): Promise<OpenPrefsResult> {
   try {
     if (typeof input.text !== "string") {
       return failedResult(input.text, "OpenPrefs request text must be a string.");
     }
     const current = await readCurrent(input.adapter, input.preferences.ids());
-    const resolverInput: ResolveInput = {
+    const resolverInput: ResolveInput<Manifest> = {
       text: input.text,
       preferences: input.preferences,
       ...(current === undefined ? {} : { current }),

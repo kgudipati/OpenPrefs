@@ -1,7 +1,12 @@
 import type { ApplyFailure, PreferencesAdapter } from "../adapter/types";
 import type { AppliedResult, FailedResult } from "../core/results";
 import { errorMessage, isRecord, readOwnDataProperty } from "../internal/guards";
+import type { PreferencesManifest } from "../manifest/manifest";
+import type { PreferenceChangeFor } from "../manifest/types";
 import type { PreferenceChange } from "../proposal/types";
+
+type ValidatedAdapterChanges<Manifest extends PreferencesManifest> =
+  readonly PreferenceChangeFor<Manifest>[];
 
 const malformedResultMessage = "Adapter returned a malformed apply result.";
 
@@ -83,12 +88,14 @@ function normalizeResult(
  * @param changes - Whitelisted and policy-approved changes ready for mutation.
  * @returns A frozen result naming every applied and failed change; the promise never rejects.
  */
-export async function executeChanges(
-  adapter: PreferencesAdapter,
+export async function executeChanges<Manifest extends PreferencesManifest>(
+  adapter: PreferencesAdapter<Manifest> | PreferencesAdapter,
   changes: readonly PreferenceChange[],
 ): Promise<AppliedResult | FailedResult> {
   try {
-    const result: unknown = await adapter.apply(changes);
+    // Every change has passed manifest whitelisting and value validation, so the loose internal
+    // representation structurally satisfies the manifest-derived union at this host boundary.
+    const result: unknown = await adapter.apply(changes as ValidatedAdapterChanges<Manifest>);
     return normalizeResult(changes, result);
   } catch (error) {
     return totalFailure(

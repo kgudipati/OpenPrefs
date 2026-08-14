@@ -40,7 +40,9 @@ function isServerPreferenceId(id: string): id is ServerPreferenceId {
 }
 
 /** Creates glue for the server-backed host application's existing async API client. */
-export function createServerBackedAdapter(client: ServerSettingsClient): PreferencesAdapter {
+export function createServerBackedAdapter(
+  client: ServerSettingsClient,
+): PreferencesAdapter<typeof serverBackedPreferences> {
   return {
     async read(ids) {
       return client.get(ids.filter(isServerPreferenceId));
