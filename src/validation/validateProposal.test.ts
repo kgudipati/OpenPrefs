@@ -52,11 +52,6 @@ const adversarialCases: readonly AdversarialCase[] = [
     codes: ["PROPOSAL_MALFORMED"],
   },
   {
-    name: "extra proposal key",
-    input: { changes: [], explanation: "trust me" },
-    codes: ["PROPOSAL_MALFORMED"],
-  },
-  {
     name: "null change",
     input: { changes: [null] },
     codes: ["CHANGE_MALFORMED"],
@@ -212,6 +207,19 @@ describe("validateProposal", () => {
     });
   });
 
+  it("validates changes inside a resolver envelope and ignores additional proposal keys", () => {
+    const validation = validateProposal(manifest, {
+      status: "resolved",
+      changes: [{ id: "enabled", value: true }],
+      explanation: "The user requested this preference.",
+    });
+
+    expect(validation).toEqual({
+      changes: [{ id: "enabled", value: true }],
+      rejections: [],
+    });
+  });
+
   it("returns every valid change and every rejection in proposal order", () => {
     const validation = validateProposal(manifest, {
       changes: [
@@ -252,7 +260,7 @@ describe("validateProposal", () => {
     const input = new Proxy(
       {},
       {
-        ownKeys() {
+        getOwnPropertyDescriptor() {
           throw new Error("hostile proxy");
         },
       },
@@ -269,9 +277,9 @@ describe("validateProposal", () => {
     });
   });
 
-  it("does not invoke accessor properties from untrusted input", () => {
+  it("rejects a changes accessor while allowing other proposal envelope keys", () => {
     let accessed = false;
-    const input = Object.defineProperty({}, "changes", {
+    const input = Object.defineProperty({ status: "resolved" }, "changes", {
       enumerable: true,
       get() {
         accessed = true;
@@ -284,6 +292,43 @@ describe("validateProposal", () => {
     expect(accessed).toBe(false);
     expect(validation.changes).toEqual([]);
     expect(validation.rejections[0]?.code).toBe("PROPOSAL_MALFORMED");
+  });
+
+  it("does not invoke attacker-controlled array map or iterator methods", () => {
+    class HostileChanges extends Array<unknown> {
+      override map<Value>(
+        _callback: (value: unknown, index: number, array: unknown[]) => Value,
+        _thisArg?: unknown,
+      ): Value[] {
+        throw new Error("map must not run");
+      }
+
+      override [Symbol.iterator](): ArrayIterator<unknown> {
+        throw new Error("iterator must not run");
+      }
+    }
+    const hostileChanges = new HostileChanges(null);
+
+    expect(() => validateProposal(manifest, { changes: hostileChanges })).not.toThrow();
+    expect(validateProposal(manifest, { changes: hostileChanges })).toEqual({
+      changes: [],
+      rejections: [expect.objectContaining({ code: "CHANGE_MALFORMED" })],
+    });
+  });
+
+  it("conservatively rejects both changes when a malformed entry identifies a duplicate id", () => {
+    const validation = validateProposal(manifest, {
+      changes: [
+        { id: "theme", value: "dark", confidence: 1 },
+        { id: "theme", value: "light" },
+      ],
+    });
+
+    expect(validation.changes).toEqual([]);
+    expect(validation.rejections).toEqual([
+      expect.objectContaining({ code: "CHANGE_MALFORMED", id: "theme" }),
+      expect.objectContaining({ code: "CHANGE_DUPLICATE", id: "theme" }),
+    ]);
   });
 
   it("freezes trusted outputs without freezing or mutating resolver input", () => {
@@ -307,6 +352,7 @@ describe("validateProposal", () => {
       readonly value: boolean | string | number;
     }>();
     expectTypeOf<SettingsProposal>().toEqualTypeOf<{
+      readonly [key: string]: unknown;
       readonly changes: readonly {
         readonly id: unknown;
         readonly value: unknown;

@@ -15,9 +15,14 @@ export interface PreferenceChange {
 /**
  * Describes the resolver's untrusted proposal envelope.
  *
- * The fields of each proposed change remain unknown until they cross the validation boundary.
+ * Resolvers may attach envelope fields such as `status`; proposal validation ignores those fields
+ * and validates only the `changes` data property. The fields of each proposed change remain
+ * unknown until they cross the validation boundary.
  */
 export interface SettingsProposal {
+  /** Additional resolver-owned envelope fields that proposal validation ignores. */
+  readonly [key: string]: unknown;
+
   /** The untrusted preference changes selected by a resolver. */
   readonly changes: readonly {
     readonly id: unknown;

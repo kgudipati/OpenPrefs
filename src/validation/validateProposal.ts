@@ -47,7 +47,6 @@ type ValueValidationResult =
   | { readonly value: PreferenceChange["value"] }
   | { readonly rejection: ProposalRejection };
 
-const proposalKeys = new Set<PropertyKey>(["changes"]);
 const changeKeys = new Set<PropertyKey>(["id", "value"]);
 
 function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
@@ -94,7 +93,7 @@ function malformedProposal(): ProposalValidationResult {
     [
       reject(
         "PROPOSAL_MALFORMED",
-        'Proposal must be an object containing only its own data property "changes" as an array.',
+        'Proposal must be an object containing its own data property "changes" as an array.',
       ),
     ],
   );
@@ -206,7 +205,7 @@ function validateProposalSafely(
   manifest: PreferencesManifest,
   input: unknown,
 ): ProposalValidationResult {
-  if (!isRecord(input) || !hasExactKeys(input, proposalKeys)) {
+  if (!isRecord(input)) {
     return malformedProposal();
   }
 
@@ -215,7 +214,11 @@ function validateProposalSafely(
     return malformedProposal();
   }
 
-  const inspected = changesProperty.value.map(inspectChange);
+  const proposedChanges = changesProperty.value;
+  const inspected: InspectedChange[] = [];
+  for (let index = 0; index < proposedChanges.length; index += 1) {
+    inspected.push(inspectChange(proposedChanges[index], index));
+  }
   const idCounts = new Map<string, number>();
   for (const change of inspected) {
     if ("id" in change && change.id !== undefined) {
@@ -232,7 +235,8 @@ function validateProposalSafely(
     }
 
     const { id, value } = change;
-    if ((idCounts.get(id) ?? 0) > 1) {
+    // Counts include malformed entries with identifiable ids, so only exactly one may proceed.
+    if (idCounts.get(id) !== 1) {
       rejections.push(
         reject(
           "CHANGE_DUPLICATE",
@@ -281,6 +285,8 @@ export function validateProposal(
   try {
     return validateProposalSafely(manifest, input);
   } catch {
+    // This is last-resort defense-in-depth for hostile exotic objects, not a substitute for
+    // correct validation. Any exception reaching this point indicates a defect in the validator.
     return malformedProposal();
   }
 }
