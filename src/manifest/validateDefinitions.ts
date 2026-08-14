@@ -1,4 +1,5 @@
 import { ManifestError } from "../errors/manifestError";
+import { isRecord } from "../internal/guards";
 import { createPreferencesManifest, type PreferencesManifest } from "./manifest";
 import type {
   BooleanPreferenceDefinition,
@@ -14,10 +15,6 @@ const booleanKeys = new Set(["type", "description", "default", "openPrefs"]);
 const stringKeys = new Set(["type", "description", "enum", "default", "openPrefs"]);
 const numberKeys = new Set(["type", "description", "minimum", "maximum", "default", "openPrefs"]);
 const openPrefsKeys = new Set(["sensitive", "confirmation"]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
 
 function hasOwn(value: Record<string, unknown>, key: string): boolean {
   return Object.hasOwn(value, key);
