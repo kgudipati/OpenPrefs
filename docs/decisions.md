@@ -2,6 +2,12 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Reject partially invalid proposals as a whole
+
+- **Decision:** During v0.x, when proposal validation rejects any entry, policy rejects the entire request and withholds otherwise valid changes.
+- **Rationale:** Applying only a subset would perform something other than the resolver proposed without first making that difference explicit, violating the preview-over-surprise principle.
+- **Revisit when:** Real user demand for partial application justifies designing an explicit partial-preview and confirmation contract.
+
 ## 2026-08-13 — Require manifest tests and coverage
 
 - **Decision:** Remove Vitest's temporary `passWithNoTests` setting and enforce coverage across `src/` at 90% lines and 85% branches.
