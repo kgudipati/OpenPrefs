@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  conventions:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Validate pull request title
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        shell: bash
+        run: |
+          title_pattern='^(feat|fix|chore|docs|test|refactor|build|ci)\((manifest|validation|policy|execution|adapter|resolver|core|skill|evals|examples|docs|ci|deps)\)!?: [a-z0-9].*$'
+          subject="${PR_TITLE#*: }"
+
+          if [[ ! "$PR_TITLE" =~ $title_pattern ]]; then
+            echo "PR title must match <type>(<scope>): <subject>."
+            exit 1
+          fi
+
+          if [[ "$subject" == *. ]] || (( ${#subject} > 72 )); then
+            echo "PR subject must have no trailing period and be at most 72 characters."
+            exit 1
+          fi
+
+  verify:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version:
+          - 20
+          - 22
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Enforce zero runtime dependencies
+        run: |
+          node -e 'const p = require("./package.json"); const fields = ["dependencies", "peerDependencies", "optionalDependencies", "bundleDependencies"]; const nonEmpty = fields.filter((field) => { const value = p[field]; return Array.isArray(value) ? value.length > 0 : value && typeof value === "object" ? Object.keys(value).length > 0 : Boolean(value); }); if (nonEmpty.length > 0) { console.error("Runtime dependency fields must be empty: " + nonEmpty.join(", ")); process.exit(1); }'
+
+      - name: Verify
+        run: npm run verify

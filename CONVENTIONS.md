@@ -1,0 +1,48 @@
+# OpenPrefs Engineering Conventions
+
+These conventions apply to every contribution to OpenPrefs.
+
+## Branching
+
+OpenPrefs uses trunk-based development. `main` is always releasable, and branches must be short-lived. Do not create long-lived branches.
+
+Branch names use `<type>/<short-kebab-description>`, where `type` is one of `feat`, `fix`, `chore`, `docs`, `test`, `refactor`, `build`, or `ci`. For example, Phase 1 work belongs on `feat/phase-1-manifest`.
+
+## Commits
+
+Use Conventional Commits in the form `<type>(<scope>): <subject>`.
+
+Allowed scopes are `manifest`, `validation`, `policy`, `execution`, `adapter`, `resolver`, `core`, `skill`, `evals`, `examples`, `docs`, `ci`, and `deps`.
+
+Write the subject in the imperative mood and lowercase, without a trailing period. Keep it at or below 72 characters. The commit body explains why the change is necessary, not what the diff does, and wraps at 100 characters.
+
+Mark breaking changes with `!` after the scope and add a `BREAKING CHANGE:` footer.
+
+## Pull requests
+
+Create one pull request per phase or logical unit. Pull requests are squash-merged only. The pull request title becomes the squash commit message, so it must be a valid Conventional Commit.
+
+## Code comments
+
+Add TSDoc to every exported symbol. Document its purpose, parameters, return value, and the invariants it upholds.
+
+Inline comments explain why the code exists or why a non-obvious choice is safe; they never narrate what the code does. Do not leave commented-out code. Every `TODO` must include a linked issue number.
+
+## Code style
+
+- Follow KISS: use the simplest construct that satisfies the specification. Do not introduce an abstraction for a single caller.
+- Apply DRY to duplicated knowledge, not incidental similarity of shape.
+- Do not use `any`.
+- Do not use non-null assertions without a comment that justifies the invariant.
+- Do not use type assertions to silence the compiler.
+- Return typed result objects for expected failures. Reserve exceptions for programmer errors, such as a malformed manifest detected at definition time.
+- Prefer pure functions and isolate side effects at system boundaries.
+
+## Testing
+
+- Co-locate unit tests as `<name>.test.ts`.
+- Put integration tests and fake host applications in `tests/`.
+- Name tests after observable behaviour, not implementation details.
+- Structure tests as arrange, act, and assert.
+- Every bug fix includes a regression test that fails before the fix.
+- No test may require network access, an API key, or an LLM.
