@@ -8,4 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- A versioned, portable preferences manifest with boolean, string, enum, and bounded number definitions.
+- Definition-time validation with actionable, machine-readable manifest errors.
+- Immutable manifest lookup APIs and type helpers for preference values and partial host state.
 - Phase 0 repository scaffolding, including TypeScript configuration, dual ESM and CJS builds, tests, formatting, linting, CI, contribution guidance, and architectural guardrails.

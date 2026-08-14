@@ -2,6 +2,12 @@
 
 Entries are ordered newest first.
 
+## 2026-08-13 — Require manifest tests and coverage
+
+- **Decision:** Remove Vitest's temporary `passWithNoTests` setting and enforce coverage across `src/` at 90% lines and 85% branches.
+- **Rationale:** Phase 1 introduces the first product logic, so an empty suite or materially untested manifest implementation must fail verification.
+- **Closes:** The Phase 0 decision to allow an empty test suite temporarily.
+
 ## 2026-08-13 — Leave Markdown and YAML unformatted
 
 - **Decision:** Markdown and YAML remain unformatted by choice under Biome 2.5.8. Do not add a second formatter to cover them.
@@ -12,7 +18,7 @@ Entries are ordered newest first.
 
 - **Decision:** Keep Vitest's `passWithNoTests` enabled during Phase 0 only.
 - **Rationale:** Phase 0 contains tooling and guardrails but intentionally contains no product tests.
-- **Revisit when:** Phase 1 begins. Remove this setting so an empty or broken test glob cannot pass CI silently.
+- **Outcome:** Closed in Phase 1. The setting was removed and coverage thresholds now protect the product test suite.
 
 ## 2026-08-13 — Tolerate tsup's deprecated `baseUrl`
 

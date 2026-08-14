@@ -22,6 +22,8 @@ Mark breaking changes with `!` after the scope and add a `BREAKING CHANGE:` foot
 
 Create one pull request per phase or logical unit. Pull requests are squash-merged only. The pull request title becomes the squash commit message, so it must be a valid Conventional Commit.
 
+Once a pull request is open for review, add commits rather than force-pushing so review history is preserved. Force-pushing is acceptable only on drafts before first review.
+
 ## Code comments
 
 Add TSDoc to every exported symbol. Document its purpose, parameters, return value, and the invariants it upholds.
