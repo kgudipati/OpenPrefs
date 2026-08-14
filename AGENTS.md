@@ -4,6 +4,12 @@ OpenPrefs is a semantic layer that turns natural-language intent into validated 
 
 All contributions must follow the engineering practices in [`CONVENTIONS.md`](./CONVENTIONS.md).
 
+## Implemented semantics
+
+[`docs/architecture.md`](./docs/architecture.md) is the authoritative record of **IMPLEMENTED**
+semantics. Where it deviates from the product specification, `architecture.md` is correct and its
+"Deviations from the product specification" section explains why.
+
 ## Runtime primitives
 
 - **Manifest** describes which preferences exist and which capabilities are exposed. It does not own persistence.
