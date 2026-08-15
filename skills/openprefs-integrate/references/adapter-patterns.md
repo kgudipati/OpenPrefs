@@ -86,6 +86,50 @@ Do not report `{ ok: true }` merely because the request completed. Map native re
 API is atomic and throws with no per-change outcome, let OpenPrefs conservatively report total
 failure or translate only information the API actually authenticates.
 
+## HTTP route as the existing setter
+
+In a Next.js App Router application, the settings page may post to a route handler while the route's
+merge and validation functions remain private to that module. Preserve one implementation of those
+rules, using this order:
+
+1. Import the route's existing merge and validation functions in-process. Adding only `export` to
+   those functions is not a migration: it changes no behavior, call site, or data.
+2. If the route owns authentication, session handling, or side effects the adapter cannot reproduce,
+   call the route with `fetch` so the adapter goes through the same boundary as the settings page.
+3. **NEVER copy merge or validation logic from the route into the adapter.** The copies can drift
+   silently until natural-language changes behave differently from the settings page, with no test
+   necessarily exposing the divergence. A real integration made this mistake; this rule exists to
+   prevent it from recurring.
+
+For an in-process adapter, validate and merge with the exact host functions before invoking the
+existing persistence operation:
+
+```ts
+const checked = validateSettingsPatch(update);
+if (!checked.ok) return { ok: false, failed: checked.failed };
+
+await settingsRepository.save(mergeSettings(current, checked.value));
+return { ok: true };
+```
+
+For a route-backed adapter, preserve the host route's request contract and translate only response
+information the route actually returns:
+
+```ts
+const response = await fetch("/api/settings", {
+  method: "PATCH",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify(update),
+});
+
+return response.ok
+  ? { ok: true }
+  : { ok: false, failed: changes.map(({ id }) => ({ id, reason: "Settings update failed." })) };
+```
+
+Do not recreate route authentication or session behavior inside the adapter merely to avoid the HTTP
+call. Do not bypass route-owned effects by importing only its persistence primitive.
+
 ## localStorage-backed application
 
 Reuse the application's parsers and serializers. Do not create a second serialization format.
@@ -188,6 +232,8 @@ architecture.
 ## Adapter review checklist
 
 - Every active manifest id reaches the host's existing setter.
+- Route-backed setters reuse the host's merge and validation functions or call the route; they never
+  duplicate those rules.
 - Every Tier 2 id has a complete, runtime-guarded handler but is absent from the active manifest.
 - Tier 3 ids have no dispatch path.
 - Every `apply` switch has a `default` that reports the actual id as failed.

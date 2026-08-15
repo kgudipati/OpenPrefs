@@ -86,12 +86,15 @@ notifyComments: {
 The repeated word “notifications” is useful, not redundant. It supplies a shared category for “turn
 off my social notifications” while the rest of each sentence preserves distinctions.
 
-## Mirror nested host structure in ids
+## Mirror nested host structure in ids by default
 
 Use dot-separated ids for nested settings. Every segment must match
 `/^[a-zA-Z][a-zA-Z0-9]*$/`, and the segments should mirror the host's existing object or API
-structure rather than flatten it into a newly invented name. For example, given this host-owned
-settings shape:
+structure rather than flatten it into a newly invented name when that structure describes the
+preference honestly. This is the default, not a rule. The manifest is a semantic description, not a
+storage schema, so a misleading host path should not become misleading resolver input.
+
+For example, given this host-owned settings shape:
 
 ```ts
 const settings = {
@@ -174,6 +177,39 @@ Do not rename these ids to flattened forms such as `failureBrowserNotifications`
 the host's category boundaries, scale to deeper settings trees, and make the adapter mapping
 auditable without changing the host architecture.
 
+A real application stored whether a provider was enabled at
+`providerApiKeys.openai.enabled`. The flag did not control an API key, so mirroring that path would
+misdescribe the capability. Use the honest semantic id in the manifest:
+
+```ts
+const preferences = definePreferences({
+  "providers.openai.enabled": {
+    type: "boolean",
+    description: "Whether the OpenAI provider is enabled.",
+  },
+});
+```
+
+The adapter remains responsible for mapping that id to the host's real location:
+
+```ts
+case "providers.openai.enabled":
+  settingsStore.update((current) => ({
+    ...current,
+    providerApiKeys: {
+      ...current.providerApiKeys,
+      openai: {
+        ...current.providerApiKeys.openai,
+        enabled: change.value,
+      },
+    },
+  }));
+  break;
+```
+
+Semantic divergence is not permission to redesign host storage. Change only the manifest id and
+adapter mapping; the host continues to read and write its existing path.
+
 Other useful category-bearing forms:
 
 - “The interface text size, from small to large.”
@@ -229,13 +265,33 @@ Some string setters validate against a runtime registry rather than a fixed list
 shape is perfect: a generated enum goes stale when registry entries change, while a bare string lets
 a resolver propose a value the registry does not contain and leaves rejection to the adapter.
 
-Prefer generating the enum from the registry's current contents so the resolver sees the valid
-choices at integration time. In the report, say that the enum is a snapshot and must be regenerated
-whenever the registry changes. The adapter must still consult the live registry and reject unknown
-values before invoking the host setter, even when the proposed value appears in the generated enum.
-The enum improves resolver accuracy; the adapter remains the trusted enforcement boundary.
+Prefer generating the enum from the registry's current contents so the resolver sees valid choices.
+There are two acceptable snapshot styles:
 
-For example, if the registry currently contains `vim` and `emacs`, generate the snapshot:
+- Compute the enum from the live registry at module load. It stays current across process restarts,
+  although the concrete choices are not visible in the integration diff.
+- Freeze the current values as a literal. The choices are directly inspectable in the diff, but the
+  literal must be regenerated whenever the registry changes.
+
+The adapter must still consult the live registry and reject unknown values before invoking the host
+setter, even when the proposed value appears in either snapshot. The enum improves resolver
+accuracy; the adapter remains the trusted enforcement boundary.
+
+To compute a module-load snapshot:
+
+```ts
+const installedKeymaps = [...keymapRegistry.keys()];
+
+const preferences = definePreferences({
+  "editor.keymap": {
+    type: "string",
+    enum: installedKeymaps,
+    description: "The editor keybinding set selected from installed keymaps.",
+  },
+});
+```
+
+Or, if the registry currently contains `vim` and `emacs`, freeze the same snapshot as a literal:
 
 ```ts
 "editor.keymap": {
@@ -257,9 +313,9 @@ case "editor.keymap":
   break;
 ```
 
-If the registry later adds or removes a keymap, regenerate the manifest enum. Until then, the stale
-snapshot may hide a new valid value or propose a removed one, but the adapter must never pass an
-unknown value through to the setter.
+If the registry changes while the process is running, either snapshot can be stale until the next
+module load; a frozen literal can remain stale across restarts until regenerated. In every case, the
+adapter must never pass an unknown value through to the setter.
 
 ## Final description check
 

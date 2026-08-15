@@ -123,13 +123,16 @@ boundary uncertain, do not activate it.
 
 ### 5. Author precise manifest entries
 
-Use stable ids that map clearly to the host preference. For a nested host setting, use dot-separated
-ids such as `notifications.categories.failures.browser`. Each segment must match
-`/^[a-zA-Z][a-zA-Z0-9]*$/`. Mirror the host's own nesting rather than inventing a flattened id. For
-example, a host value at `settings.notifications.categories.failures.browser` should use the id
-`notifications.categories.failures.browser`, not `failureBrowserNotifications`. See the
-[description guide](references/description-guide.md#mirror-nested-host-structure-in-ids) for a worked
-manifest and adapter example.
+Use stable ids that map clearly to the host preference. For a nested host setting, dot-separated ids
+such as `notifications.categories.failures.browser` are the default. Each segment must match
+`/^[a-zA-Z][a-zA-Z0-9]*$/`. Mirror the host's own nesting when that path describes the preference
+honestly rather than inventing a flattened id. This is a default, not a rule: the manifest is a
+semantic description, not a storage schema. Diverge when the host path is misleading. A real host
+stored a provider-enabled flag at `providerApiKeys.openai.enabled`, even though the flag had nothing
+to do with API keys; the honest manifest id was `providers.openai.enabled`. The adapter still wrote
+to `providerApiKeys.openai.enabled`, the host's real location. See the
+[description guide](references/description-guide.md#mirror-nested-host-structure-in-ids-by-default)
+for worked manifest and adapter examples.
 
 Preserve host types, legal values, inclusive numeric bounds, and defaults supported by evidence. A
 value assigned by the application's initialized state is evidence of a default and may be recorded.
@@ -203,12 +206,13 @@ what makes “make the text bigger” resolvable. Preserve non-ordinal host valu
 order, and state the choices in the description when evidence supports their meaning.
 
 When a string setter validates against a runtime registry rather than a fixed list, record the
-tradeoff explicitly. A generated enum can go stale as the registry changes; a bare string lets a
-resolver propose an invalid value that only the adapter can reject. Prefer generating the manifest
-enum from the registry's current contents. State in the integration report that the enum is a
-snapshot and must be regenerated when the registry changes. Regardless of the enum, the adapter
-must check the live registry and reject unknown values before calling the setter. The manifest is a
-resolver constraint, not a replacement for host validation.
+tradeoff explicitly. A bare string lets a resolver propose an invalid value that only the adapter
+can reject. Prefer snapshotting the registry's current contents into the manifest enum, either by
+computing the enum at module load from the live registry or by writing a frozen literal. A load-time
+snapshot stays current across process restarts; a literal is directly inspectable in the diff but
+must be regenerated when the registry changes. Either is acceptable. Regardless of the snapshot
+style, the adapter must check the live registry and reject unknown values before calling the setter.
+The manifest is a resolver constraint, not a replacement for host validation.
 
 Mark privacy, security, data-sharing, and payment-adjacent preferences with
 `openPrefs: { sensitive: true }`. Add `confirmation: "required"` only when a change is irreversible
@@ -216,11 +220,19 @@ or carries consequences beyond the preference itself, such as deletion, billing,
 granting third-party access, or disabling a security control. A reversible privacy or visibility
 preference is sensitive only; it does not require the unconditional floor.
 
+Mark a preference sensitive only when repository evidence supports that classification. If no
+preference has such evidence, marking nothing `sensitive` is correct, not a missed step. Do not mark
+a preference sensitive merely to make the integration appear thorough.
+
 Consult [the implemented architecture](../../docs/architecture.md): `sensitive` is a classification
 whose effect depends on the global confirmation mode, while `confirmation: "required"` is an
 unconditional floor. Under the default policy every change confirms anyway, so
 `confirmation: "required"` matters only when a developer has deliberately selected global mode
 `"never"`. Reserve it for changes that must still confirm then.
+
+At setup, do not override the global default `confirmation: "always"` policy. The safe default is
+intentional; the host decides whether and when to relax it after reviewing its own confirmation
+experience and preference boundary.
 
 For every Tier 2 candidate, emit a commented block at the intended manifest location:
 
@@ -242,6 +254,18 @@ exception to generic bans on commented-out code.
 Call the same getters, setters, dispatchers, context methods, serializers, and API clients that the
 application already uses. Preserve their sync/async behavior and partial-failure semantics. It is
 correct for one adapter to branch across unrelated mechanisms.
+
+When the host's setter is an HTTP route whose merge or validation internals are not exported, as is
+common with a Next.js App Router route handler, use this preference order:
+
+1. Import the existing merge and validation functions in-process. If necessary, add only an
+   `export` keyword to those functions. That is not a migration: it changes no behavior, call site,
+   or data.
+2. If the route performs authentication, session handling, or side effects the adapter cannot
+   reproduce, call the existing route with `fetch` instead so those behaviors remain in the path.
+3. **NEVER copy the route's merge or validation logic into the adapter.** Two copies drift silently,
+   and natural-language changes then behave differently from the settings page without any test
+   necessarily failing. This happened in a real integration, which is why this rule exists.
 
 Generate complete Tier 2 handlers while keeping them unreachable from OpenPrefs until their
 manifest entries are activated. **The adapter handler IS generated and complete while the manifest
