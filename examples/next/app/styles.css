@@ -245,6 +245,10 @@ select {
   color: #5b675f;
 }
 
+.preview-row .proposed-value {
+  grid-column: 2 / -1;
+}
+
 .dialog-actions {
   display: flex;
   justify-content: flex-end;

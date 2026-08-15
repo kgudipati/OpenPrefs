@@ -1,8 +1,20 @@
 "use client";
 
-import type { ConfirmationRequiredResult, OpenPrefsResult, SettingsProposal } from "openprefs";
+import type {
+  ConfirmationRequiredResult,
+  OpenPrefsResult,
+  PreferenceChangePreview,
+  SettingsProposal,
+} from "openprefs";
 import { useCallback, useEffect, useState } from "react";
 import type { AppSettings } from "../lib/settings";
+
+/*
+ * This reference UI is meant to be copied into a host application and restyled.
+ * Three details are load-bearing for correctness: confirm the exact proposal OpenPrefs returned,
+ * fall back to proposal values when a read cannot produce a preview, and render clarification
+ * questions through React text interpolation because they are untrusted model output.
+ */
 
 interface ApiResponse {
   readonly state?: AppSettings;
@@ -32,12 +44,50 @@ function resultMessage(result: OpenPrefsResult): string {
     case "unsupported":
       return "That request does not match an exposed preference.";
     case "rejected":
-      return `OpenPrefs rejected the proposal (${result.reason}).`;
+      switch (result.reason) {
+        case "proposal_rejected":
+          return result.rejections.map((rejection) => rejection.message).join(" ");
+        case "too_many_changes":
+          return `OpenPrefs rejected ${result.count} changes because the limit is ${result.limit}.`;
+        case "unknown_preference":
+          return "The proposal named a preference this app does not expose.";
+        case "no_changes":
+          return "The proposal did not contain any changes.";
+        default:
+          return "OpenPrefs rejected the proposal.";
+      }
     case "failed":
-      return result.error;
+      return `The settings infrastructure failed: ${result.error}`;
     case "confirmation_required":
       return "Review the proposed changes before applying them.";
   }
+}
+
+function formatPreferenceValue(value: unknown): string {
+  if (typeof value === "boolean") {
+    return value ? "On" : "Off";
+  }
+  if (typeof value === "string" || typeof value === "number") {
+    return String(value);
+  }
+  if (value === undefined) {
+    return "Unknown";
+  }
+  return JSON.stringify(value) ?? String(value);
+}
+
+function previewForChange(
+  id: string,
+  proposedValue: unknown,
+  preview: readonly PreferenceChangePreview[] | undefined,
+): { readonly before?: unknown; readonly after: unknown; readonly hasBefore: boolean } {
+  const previewChange = preview?.find((change) => change.id === id);
+  if (previewChange !== undefined) {
+    return { before: previewChange.before, after: previewChange.after, hasBefore: true };
+  }
+
+  // A host read() may omit values, so the validated proposal is the required display fallback.
+  return { after: proposedValue, hasBefore: false };
 }
 
 /** Renders natural-language and conventional controls over the same application settings. */
@@ -63,6 +113,11 @@ export default function SettingsPage() {
     });
   }, [refresh]);
 
+  function handleResult(result: OpenPrefsResult): void {
+    setMessage(resultMessage(result));
+    setConfirmation(result.status === "confirmation_required" ? result : undefined);
+  }
+
   async function submitIntent(): Promise<void> {
     if (intent.trim().length === 0) {
       return;
@@ -73,10 +128,8 @@ export default function SettingsPage() {
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }
-      if (payload.result?.status === "confirmation_required") {
-        setConfirmation(payload.result);
-      } else if (payload.result !== undefined) {
-        setMessage(resultMessage(payload.result));
+      if (payload.result !== undefined) {
+        handleResult(payload.result);
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "The request failed.");
@@ -88,14 +141,14 @@ export default function SettingsPage() {
   async function confirmProposal(proposal: SettingsProposal): Promise<void> {
     setBusy(true);
     try {
+      // Send the proposal back exactly as received; never reconstruct its changes on the client.
       const payload = await postPreferences({ kind: "confirm", proposal });
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }
       if (payload.result !== undefined) {
-        setMessage(resultMessage(payload.result));
+        handleResult(payload.result);
       }
-      setConfirmation(undefined);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Confirmation failed.");
     } finally {
@@ -163,6 +216,7 @@ export default function SettingsPage() {
             <h2 id="controls-title">Choose settings directly</h2>
           </div>
           <p className="status" role="status">
+            {/* React renders an untrusted clarification question here as escaped text, never HTML. */}
             {message}
           </p>
         </div>
@@ -270,14 +324,26 @@ export default function SettingsPage() {
             <h2 id="dialog-title">Review these changes</h2>
             <p>OpenPrefs has validated the proposal but has not changed your settings yet.</p>
             <div className="preview-list">
-              {(confirmation.preview ?? []).map((change) => (
-                <div className="preview-row" key={change.id}>
-                  <strong>{change.id}</strong>
-                  <span>{String(change.before)}</span>
-                  <span aria-hidden="true">→</span>
-                  <span>{String(change.after)}</span>
-                </div>
-              ))}
+              {confirmation.proposal.changes.map((change) => {
+                const id = String(change.id);
+                const row = previewForChange(id, change.value, confirmation.preview);
+                return (
+                  <div className="preview-row" key={id}>
+                    <strong>{id}</strong>
+                    {row.hasBefore ? (
+                      <>
+                        <span>{formatPreferenceValue(row.before)}</span>
+                        <span aria-hidden="true">→</span>
+                        <span>{formatPreferenceValue(row.after)}</span>
+                      </>
+                    ) : (
+                      <span className="proposed-value">
+                        Set to {formatPreferenceValue(row.after)}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
             <div className="dialog-actions">
               <button

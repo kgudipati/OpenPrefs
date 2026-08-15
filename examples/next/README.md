@@ -15,6 +15,14 @@ before/after rows, and only sends the proposal to `openPrefs.confirm()` after ex
 Both the conventional-controls route and the OpenPrefs adapter call `updateSettings()`, proving
 that natural language uses the application's existing mutation path.
 
+## Build your own UI
+
+Start with [`app/page.tsx`](./app/page.tsx), then copy and restyle its natural-language form and
+confirmation dialog inside your application. OpenPrefs does not export UI components. Preserve the
+three correctness-critical parts while adapting the example: send the returned proposal back to
+`confirm()` unmodified, fall back to `proposal.changes` when a confirmation preview is partial or
+absent, and render clarification questions as text because resolver output is untrusted.
+
 ## Run it
 
 From a clean repository checkout:
