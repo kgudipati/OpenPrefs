@@ -310,8 +310,8 @@ Every generated `apply` switch must have a `default` case that appends a failure
 actual unhandled id. A JSON-parsed manifest can yield loose ids without an exhaustiveness guarantee;
 without `default`, an unhandled id may be silently reported as applied.
 
-Return `{ ok: true }` only when every submitted change succeeded. `{ success: true }` and
-`{ failed: [] }` are **not valid success shapes**. Return `{ ok: false, failed }` with a non-empty
+Return `{ ok: true }` only when every submitted change succeeded. A legacy `success` discriminator
+and `{ failed: [] }` are **not valid success shapes**. Return `{ ok: false, failed }` with a non-empty
 failure list for rejected or unhandled changes. [The implemented architecture](../../docs/architecture.md)
 is authoritative over the older product specification on this contract. Catch independent
 per-change failures when the host can report them accurately; do not add rollback or transactions

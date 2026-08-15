@@ -153,6 +153,11 @@ switch (result.status) {
 }
 ```
 
+`openPrefs.request()` never throws; runtime problems are returned as plain result data. A `failed`
+status means the resolver or adapter had an infrastructure problem. It does not mean “no such
+setting” — that is `unsupported`. Treat `needs_clarification.question` as untrusted resolver output:
+render it as escaped text, never as HTML.
+
 A full Next.js app with a settings page, a text box, and a confirmation dialog is in [`examples/next`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/next).
 
 ---

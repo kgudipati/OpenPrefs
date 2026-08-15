@@ -1,7 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
@@ -33,12 +33,46 @@ const expectedTarballName = `${packageMetadata.name}-${expectedVersion}.tgz`;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "openprefs-skill-package-"));
 
 const documentPaths = [
+  "README.md",
   "docs/architecture.md",
   "skills/openprefs-integrate/SKILL.md",
+  "skills/openprefs-integrate/eval.md",
   "skills/openprefs-integrate/references/adapter-patterns.md",
   "skills/openprefs-integrate/references/classification-guide.md",
   "skills/openprefs-integrate/references/description-guide.md",
 ];
+
+const forbiddenDocumentStrings = ["success: true"];
+
+async function findMarkdownDocuments(root) {
+  const documents = [];
+
+  for (const entry of await readdir(root, { withFileTypes: true })) {
+    const path = join(root, entry.name);
+    if (entry.isDirectory()) {
+      documents.push(...(await findMarkdownDocuments(path)));
+    } else if (entry.isFile() && entry.name.endsWith(".md")) {
+      documents.push(path);
+    }
+  }
+
+  return documents;
+}
+
+async function findForbiddenDocumentStrings(packageRoot) {
+  const matches = [];
+
+  for (const documentPath of await findMarkdownDocuments(packageRoot)) {
+    const contents = await readFile(documentPath, "utf8");
+    for (const forbidden of forbiddenDocumentStrings) {
+      if (contents.includes(forbidden)) {
+        matches.push(`${relative(packageRoot, documentPath)} contains '${forbidden}'`);
+      }
+    }
+  }
+
+  return matches;
+}
 
 async function findDanglingLinks(packageRoot, layout) {
   const dangling = [];
@@ -94,6 +128,13 @@ try {
   );
 
   const installedPackage = join(installDirectory, "node_modules", "openprefs");
+  const forbiddenDocumentMatches = await findForbiddenDocumentStrings(installedPackage);
+  if (forbiddenDocumentMatches.length > 0) {
+    throw new Error(
+      `Forbidden strings found in shipped documents:\n${forbiddenDocumentMatches.join("\n")}`,
+    );
+  }
+
   const dangling = [
     ...(await findDanglingLinks(repositoryRoot, "repository checkout")),
     ...(await findDanglingLinks(installedPackage, "fresh tarball install")),
