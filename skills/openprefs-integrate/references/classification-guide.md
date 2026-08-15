@@ -1,7 +1,8 @@
 # Classification guide
 
 Classify conservatively. The manifest is a capability whitelist, so a false positive is more
-dangerous than a false negative.
+dangerous than a false negative. The security and policy semantics in
+[the implemented architecture](../../../docs/architecture.md) are authoritative.
 
 ## Decision sequence
 
@@ -14,6 +15,18 @@ dangerous than a false negative.
 4. Does repository evidence support a precise user-facing description?
    - Yes: Tier 1.
    - No: Tier 2 with complete inactive adapter wiring.
+
+## When the host is incomplete
+
+Tier 2 means the mutation path is mechanically complete but semantic meaning is unknown. It is not
+a bucket for incomplete host behavior. A settings UI whose save path never reaches a working setter
+is **UNTRACED**, even when its labels would otherwise support an excellent description. A fully
+built settings section that the application never mounts is also untraced.
+
+Do not generate adapter mutation code for either case. List the candidate in the integration report
+with the specific mechanical reason, such as “save handler never calls a setter” or “settings
+section is never mounted.” This is valuable output because it identifies dead host functionality
+without pretending OpenPrefs can operate it.
 
 ## Worked decisions
 

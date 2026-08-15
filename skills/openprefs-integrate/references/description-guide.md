@@ -2,7 +2,9 @@
 
 Manifest descriptions are resolver input, not API documentation. A description should let a
 resolver distinguish the preference from nearby preferences, group it with related preferences,
-and map user language to it without inventing semantics.
+and map user language to it without inventing semantics. Follow
+[the implemented architecture](../../../docs/architecture.md) for the manifest's implemented
+constraints.
 
 ## The evidence rule
 
@@ -84,6 +86,94 @@ notifyComments: {
 The repeated word “notifications” is useful, not redundant. It supplies a shared category for “turn
 off my social notifications” while the rest of each sentence preserves distinctions.
 
+## Mirror nested host structure in ids
+
+Use dot-separated ids for nested settings. Every segment must match
+`/^[a-zA-Z][a-zA-Z0-9]*$/`, and the segments should mirror the host's existing object or API
+structure rather than flatten it into a newly invented name. For example, given this host-owned
+settings shape:
+
+```ts
+const settings = {
+  notifications: {
+    categories: {
+      failures: {
+        browser: true,
+        email: false,
+      },
+    },
+  },
+};
+```
+
+Generate manifest ids that preserve that path:
+
+```ts
+const preferences = definePreferences({
+  "notifications.categories.failures.browser": {
+    type: "boolean",
+    description: "Whether failure notifications are shown in the browser.",
+  },
+  "notifications.categories.failures.email": {
+    type: "boolean",
+    description: "Whether failure notifications are sent by email.",
+  },
+});
+```
+
+Then use the host's existing update operation to write back into the same nested shape:
+
+```ts
+const adapter: PreferencesAdapter<typeof preferences> = {
+  apply(changes) {
+    const failed: { id: string; reason: string }[] = [];
+
+    for (const change of changes) {
+      switch (change.id) {
+        case "notifications.categories.failures.browser":
+          settingsStore.update((current) => ({
+            ...current,
+            notifications: {
+              ...current.notifications,
+              categories: {
+                ...current.notifications.categories,
+                failures: {
+                  ...current.notifications.categories.failures,
+                  browser: change.value,
+                },
+              },
+            },
+          }));
+          break;
+        case "notifications.categories.failures.email":
+          settingsStore.update((current) => ({
+            ...current,
+            notifications: {
+              ...current.notifications,
+              categories: {
+                ...current.notifications.categories,
+                failures: {
+                  ...current.notifications.categories.failures,
+                  email: change.value,
+                },
+              },
+            },
+          }));
+          break;
+        default:
+          failed.push({ id: change.id, reason: `Unhandled preference id: ${change.id}` });
+      }
+    }
+
+    return failed.length === 0 ? { ok: true } : { ok: false, failed };
+  },
+};
+```
+
+Do not rename these ids to flattened forms such as `failureBrowserNotifications`. Dotted ids retain
+the host's category boundaries, scale to deeper settings trees, and make the adapter mapping
+auditable without changing the host architecture.
+
 Other useful category-bearing forms:
 
 - “The interface text size, from small to large.”
@@ -132,6 +222,44 @@ Preserve the host's declaration or UI order for nominal enums.
 When raw values are opaque but labels are clear, keep the host values in `enum` and explain their
 meaning in the description only if the resolver can safely map them. If safe mapping is not possible
 without changing the host value contract, ask the developer rather than inventing an alias layer.
+
+## Snapshot dynamic value registries
+
+Some string setters validate against a runtime registry rather than a fixed list. Neither manifest
+shape is perfect: a generated enum goes stale when registry entries change, while a bare string lets
+a resolver propose a value the registry does not contain and leaves rejection to the adapter.
+
+Prefer generating the enum from the registry's current contents so the resolver sees the valid
+choices at integration time. In the report, say that the enum is a snapshot and must be regenerated
+whenever the registry changes. The adapter must still consult the live registry and reject unknown
+values before invoking the host setter, even when the proposed value appears in the generated enum.
+The enum improves resolver accuracy; the adapter remains the trusted enforcement boundary.
+
+For example, if the registry currently contains `vim` and `emacs`, generate the snapshot:
+
+```ts
+"editor.keymap": {
+  type: "string",
+  enum: ["vim", "emacs"],
+  description: "The editor keybinding set selected from installed keymaps.",
+}
+```
+
+Keep the live check in the adapter:
+
+```ts
+case "editor.keymap":
+  if (!keymapRegistry.has(change.value)) {
+    failed.push({ id: change.id, reason: "Unknown keymap." });
+  } else {
+    settingsStore.setKeymap(change.value);
+  }
+  break;
+```
+
+If the registry later adds or removes a keymap, regenerate the manifest enum. Until then, the stale
+snapshot may hide a new valid value or propose a removed one, but the adapter must never pass an
+unknown value through to the setter.
 
 ## Final description check
 
