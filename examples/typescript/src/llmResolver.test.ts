@@ -84,6 +84,49 @@ describe.skipIf(configuredApiKey.length === 0)("the configured hosted-model reso
 });
 
 describe("hosted-model failure handling", () => {
+  it("reports raw output and usage through the optional observation side-channel", async () => {
+    const observation = vi.fn();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          new Response(
+            JSON.stringify({
+              usage: {
+                input_tokens: 120,
+                input_tokens_details: { cached_tokens: 20, cache_write_tokens: 10 },
+                output_tokens: 8,
+              },
+              output: [
+                {
+                  content: [
+                    {
+                      type: "output_text",
+                      text: '{"status":"unsupported","changes":null,"question":null}',
+                    },
+                  ],
+                },
+              ],
+            }),
+          ),
+      ),
+    );
+    const resolver = createOpenAIResolver({ apiKey: "test-key", onObservation: observation });
+
+    await resolver.resolve({ text: "book a flight", preferences });
+
+    expect(observation).toHaveBeenCalledWith({
+      model: "gpt-5.6-luna",
+      rawModelOutput: '{"status":"unsupported","changes":null,"question":null}',
+      usage: {
+        inputTokens: 120,
+        cachedInputTokens: 20,
+        cacheWriteInputTokens: 10,
+        outputTokens: 8,
+      },
+    });
+  });
+
   it("reports a non-ok provider response as failed intent resolution", async () => {
     vi.stubGlobal(
       "fetch",
