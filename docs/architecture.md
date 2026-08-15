@@ -28,9 +28,10 @@ to `"large"` using declaration order alone.
 ## Manifest labels
 
 Each preference definition may include a non-empty `label` copied from the host application's UI.
-It is presentational only: proposal validation, policy, and execution ignore it. Existing
-confirmation preview entries include the label when present so hosts can avoid rendering raw ids;
-hosts may also read it with `manifest.get(id)`.
+It is presentational for hosts and useful resolver context because users often repeat the settings
+page's wording. Proposal validation, policy, and execution ignore it. Existing confirmation preview
+entries include the label when present so hosts can avoid rendering raw ids; hosts may also read it
+with `manifest.get(id)`.
 
 ## Request lifecycle and security boundary
 

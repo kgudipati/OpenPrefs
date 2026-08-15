@@ -12,6 +12,8 @@ export interface ModelPreferenceContext {
   readonly id: string;
   /** Primitive value type enforced later by OpenPrefs. */
   readonly type: PreferenceDefinition["type"];
+  /** Host UI label that may match the user's phrasing. */
+  readonly label?: string;
   /** Host-authored semantic description. */
   readonly description: string;
   /** Legal string values, when the preference is an enum. */
@@ -106,7 +108,7 @@ const resolveResultSchema = {
  * Builds provider-neutral resolver context entirely from OpenPrefs input.
  *
  * @param input - Manifest whitelist and optional current values supplied by OpenPrefs.
- * @returns Plain JSON data containing ids, types, constraints, descriptions, and current values.
+ * @returns Plain JSON data containing ids, types, labels, descriptions, constraints, and values.
  */
 export function buildModelContext<Manifest extends PreferencesManifest>(
   input: ResolveInput<Manifest>,
@@ -129,6 +131,7 @@ export function buildModelContext<Manifest extends PreferencesManifest>(
     const common = {
       id,
       type: definition.type,
+      ...(definition.label === undefined ? {} : { label: definition.label }),
       description: definition.description,
       ...(current === undefined ? {} : { current }),
     };

@@ -347,6 +347,11 @@ OpenPrefs ships no resolver. The developer must supply one. Point them to the re
 for a scripted and a hosted resolver. The resolver returns data only and remains untrusted; it cannot
 create capabilities absent from the manifest.
 
+When a resolver builds model context field by field, include `label` when present alongside
+`description`. The label often matches the words a user types because it is the exact settings-page
+text, while the description supplies standalone semantic context. Neither field grants a capability
+or participates in validation, policy, or execution.
+
 If the developer copies the hosted resolver, warn them that its resolver instructions are
 load-bearing for adversarial containment. They must not trim those instructions without rerunning
 the adversarial eval class. Do not add a model, inference SDK, backend, or provider dependency as
