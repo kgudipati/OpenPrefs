@@ -30,21 +30,25 @@ export interface ApplyFailure {
  * The index signatures deliberately permit a host to return its native result object with an
  * `ok` acknowledgement instead of mapping away host-specific metadata. A failed acknowledgement
  * must name every submitted change the host could not apply.
+ *
+ * The failure branch MUST remain first and the success branch last. TypeScript reports a widened
+ * `ok: boolean` against the last union member, so this order keeps that diagnostic focused on the
+ * expected `ok: true` literal instead of incorrectly suggesting that `failed` is missing.
  */
 export type ApplyResult =
-  | {
-      /** Affirms that every submitted change was applied. */
-      readonly ok: true;
-
-      /** Additional host-owned result metadata ignored by OpenPrefs. */
-      readonly [key: string]: unknown;
-    }
   | {
       /** Affirms that at least one submitted change failed. */
       readonly ok: false;
 
       /** The submitted changes that the host could not apply. */
       readonly failed: readonly ApplyFailure[];
+
+      /** Additional host-owned result metadata ignored by OpenPrefs. */
+      readonly [key: string]: unknown;
+    }
+  | {
+      /** Affirms that every submitted change was applied. */
+      readonly ok: true;
 
       /** Additional host-owned result metadata ignored by OpenPrefs. */
       readonly [key: string]: unknown;
