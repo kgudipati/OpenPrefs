@@ -65,6 +65,7 @@ export const goalOrientedCases: readonly EvalCase[] = [
     id: "goal-oriented-005",
     class: "goalOriented",
     input: "Set up a quiet, focused work mode without silencing direct messages.",
+    startingState: { directMessageNotifications: false },
     expected: {
       status: "confirmation_required",
       changes: [

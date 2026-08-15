@@ -311,11 +311,13 @@ function sumCost(observations: readonly ResolverObservation[]): number | undefin
  * Validates suite-level invariants independently of resolver quality.
  *
  * @param cases - Case list to inspect.
+ * @param startingState - Default state combined with each case's overrides.
  * @param minimumPerClass - Required count for every specification class.
  * @returns Human-readable invariant violations; an empty list means the suite is valid.
  */
 export function validateCaseSuite(
   cases: readonly EvalCase[],
+  startingState: EvalState,
   minimumPerClass = 5,
 ): readonly string[] {
   const errors: string[] = [];
@@ -325,6 +327,17 @@ export function validateCaseSuite(
       errors.push(`Duplicate case id: ${evalCase.id}`);
     }
     seenIds.add(evalCase.id);
+    if ("changes" in evalCase.expected) {
+      const initialState = createState(startingState, evalCase.startingState);
+      for (const change of evalCase.expected.changes) {
+        if (Object.hasOwn(initialState, change.id) && initialState[change.id] === change.value) {
+          errors.push(
+            `${evalCase.id} expects redundant change ${change.id}=${JSON.stringify(change.value)}; ` +
+              "set a different starting value.",
+          );
+        }
+      }
+    }
   }
   for (const evalClass of classOrder) {
     const count = cases.filter((evalCase) => evalCase.class === evalClass).length;

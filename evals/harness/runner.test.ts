@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { definePreferences, type PreferencesResolver } from "../../src/index.js";
 import { evalCases } from "../cases/index.js";
+import { startingState } from "../manifest.js";
 import { formatHumanReport } from "./reporters.js";
 import { exactChangeSet, runEvalSuite, validateCaseSuite } from "./runner.js";
 import type { EvalCase } from "./types.js";
@@ -397,6 +398,22 @@ describe("the full-pipeline eval runner", () => {
 describe("the committed section 53 suite", () => {
   it("contains five unique cases in every required class", () => {
     expect(evalCases).toHaveLength(45);
-    expect(validateCaseSuite(evalCases)).toEqual([]);
+    expect(validateCaseSuite(evalCases, startingState)).toEqual([]);
+  });
+
+  it("rejects an expected change that equals the effective starting value", () => {
+    const cases: readonly EvalCase[] = [
+      {
+        id: "redundant-001",
+        class: "direct",
+        input: "use dark mode",
+        startingState: { theme: "dark" },
+        expected: { status: "applied", changes: [{ id: "theme", value: "dark" }] },
+      },
+    ];
+
+    expect(validateCaseSuite(cases, { theme: "light", analytics: false }, 0)).toEqual([
+      'redundant-001 expects redundant change theme="dark"; set a different starting value.',
+    ]);
   });
 });

@@ -352,10 +352,26 @@ When a resolver builds model context field by field, include `label` when presen
 text, while the description supplies standalone semantic context. Neither field grants a capability
 or participates in validation, policy, or execution.
 
-If the developer copies the hosted resolver, warn them that its resolver instructions are
-load-bearing for adversarial containment. They must not trim those instructions without rerunning
-the adversarial eval class. Do not add a model, inference SDK, backend, or provider dependency as
-part of this integration.
+If the developer copies or generates a hosted resolver, treat its complete resolver instruction
+block as load-bearing for both adversarial containment and resolution quality. It must not be
+trimmed. Any change requires rerunning every eval class, not only a happy-path sample.
+
+Generated resolver instructions must say both of the following:
+
+- Do not propose a change whose value already equals the current value shown in context. If every
+  setting the request refers to is already in the requested state, return a resolved result with an
+  empty changes array.
+- Match the breadth of the request. A request naming one specific setting changes that setting only.
+  A request naming a category or using a plural changes every setting in that category. Never
+  narrow a category-wide request to one representative setting or widen a specific request to its
+  whole category.
+
+Do not replace these rules with a blanket instruction to prefer fewer changes. Multi-setting
+resolution is a core capability, and every requested setting must be represented when the user's
+scope calls for it. Core independently returns `already_satisfied` for empty and all-no-op
+proposals. The resolver instruction reduces redundant proposals; it does not replace the core
+check, and neither safeguard should be removed on the assumption that the other covers it. Do not
+add a model, inference SDK, backend, or provider dependency as part of this integration.
 
 When generating a host UI, handle `already_satisfied` explicitly. Present it as an informational
 outcome, never as an error or rejection. It means that OpenPrefs found nothing to change because

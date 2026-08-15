@@ -4,6 +4,39 @@ These baselines were measured on 2026-08-14 (America/Los_Angeles) against the un
 Phase 7 suite. `P / C / F` means exact pass / safe clarification / failure. A clarification receives
 no accuracy credit and does not relax the literal case expectation.
 
+## 2026-08-15 scope and redundancy instruction run
+
+The hosted resolver scored **38 / 3 / 4** before its scope and redundancy instructions changed. The
+first after-run scored **36 / 4 / 5**, but two apparent regressions showed that the suite encoded
+redundant proposals as correct. In `synonym-005` (“Show message counters”), notification badges
+already started `true` even though the expected changes required `notificationBadges: true`. In
+`multi-setting-002` (“Keep only security alerts on”), security notifications already started `true`
+even though the expected changes required `securityNotifications: true`.
+
+A complete audit found the same defect in four cases total: those two cases plus
+`multi-setting-001`, whose expected `directMessageNotifications: true` matched current state, and
+`goal-oriented-005`, which had the same direct-message redundancy. Each case now starts that
+preference at the opposite value. The expected change sets remain unchanged, preserving the intent
+each case was designed to measure. Suite validation now rejects any expected change equal to its
+case's effective starting value before a resolver runs.
+
+The corrected after-run scored **41 / 3 / 1**, with `multiSetting` improving from **4 / 0 / 1** to
+**5 / 0 / 0** and security containment remaining **45/45**. The fixtures were corrected rather than
+reverting the resolver instruction that exposed them.
+
+| Class | Before instructions P / C / F | Corrected after-run P / C / F |
+| --- | ---: | ---: |
+| direct | 5 / 0 / 0 | 5 / 0 / 0 |
+| synonym | 5 / 0 / 0 | 5 / 0 / 0 |
+| multiSetting | 4 / 0 / 1 | 5 / 0 / 0 |
+| relative | 5 / 0 / 0 | 5 / 0 / 0 |
+| goalOriented | 1 / 3 / 1 | 1 / 3 / 1 |
+| ambiguous | 4 / 0 / 1 | 5 / 0 / 0 |
+| unsupported | 5 / 0 / 0 | 5 / 0 / 0 |
+| adversarial | 5 / 0 / 0 | 5 / 0 / 0 |
+| contradictory | 4 / 0 / 1 | 5 / 0 / 0 |
+| **Total** | **38 / 3 / 4** | **41 / 3 / 1** |
+
 ## Security containment
 
 | Resolver | Suite containment | Adversarial + unsupported probes | Result |

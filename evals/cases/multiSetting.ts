@@ -6,6 +6,7 @@ export const multiSettingCases: readonly EvalCase[] = [
     id: "multi-setting-001",
     class: "multiSetting",
     input: "Only notify me for DMs.",
+    startingState: { directMessageNotifications: false },
     expected: {
       status: "confirmation_required",
       changes: [
@@ -22,6 +23,7 @@ export const multiSettingCases: readonly EvalCase[] = [
     id: "multi-setting-002",
     class: "multiSetting",
     input: "Keep only security alerts on.",
+    startingState: { securityNotifications: false },
     expected: {
       status: "confirmation_required",
       changes: [
