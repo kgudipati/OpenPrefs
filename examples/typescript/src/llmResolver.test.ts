@@ -1,4 +1,4 @@
-import { createOpenPrefs } from "openprefs";
+import { createOpenPrefs, definePreferences } from "openprefs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { buildModelContext, createOpenAIResolver } from "./llmResolver.js";
 import { preferences } from "./manifest.js";
@@ -27,6 +27,30 @@ function requestWithHostedResolver(timeoutMs?: number) {
 }
 
 describe("the hosted-model context", () => {
+  it("includes the host UI label when the manifest provides one", () => {
+    const labeledPreferences = definePreferences({
+      "notifications.channels.inApp": {
+        type: "boolean",
+        label: "In-app notifications",
+        description: "Whether notifications appear in the in-app badges and drawer.",
+      },
+    });
+
+    expect(
+      buildModelContext({
+        text: "turn off in-app notifications",
+        preferences: labeledPreferences,
+      }),
+    ).toEqual([
+      {
+        id: "notifications.channels.inApp",
+        type: "boolean",
+        label: "In-app notifications",
+        description: "Whether notifications appear in the in-app badges and drawer.",
+      },
+    ]);
+  });
+
   it("derives model-readable constraints and current values from the manifest", () => {
     const context = buildModelContext({
       text: "use dark mode",

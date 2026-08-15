@@ -4,26 +4,27 @@ This deliberately small settings page demonstrates where OpenPrefs fits in an Ap
 application. Natural language is the prominent path, while theme, layout, notifications,
 analytics, and profile controls remain available conventionally.
 
-The browser sends text to `app/api/preferences/request/route.ts` and sends an approved proposal to
-the distinct `app/api/preferences/confirm/route.ts` confirmation endpoint. The request route imports
-the resolver from a `server-only` module, so a hosted resolver's API key never enters the client
-bundle. The included resolver is deterministic so the app works without a key. Replace
+The browser sends text to `app/api/preferences/request/route.ts` and sends the selected changes to
+the distinct `app/api/preferences/apply/route.ts` endpoint. The request route imports the resolver
+from a `server-only` module, so a hosted resolver's API key never enters the client bundle. The
+included resolver is deterministic so the app works without a key. Replace
 `serverResolver` in `lib/openPrefs.ts` with the fetch-based resolver from the TypeScript example—or
 any implementation of `PreferencesResolver`—to use another provider.
 
-The route returns `ConfirmationRequiredResult` unchanged. The page renders its `preview` as
-before/after rows, and only sends the proposal to `openPrefs.confirm()` after explicit approval.
-The conventional controls continue to use `app/api/preferences/route.ts`. Both that route and the
-OpenPrefs adapter call `updateSettings()`, proving that natural language uses the application's
-existing mutation path.
+The route returns `ConfirmationRequiredResult` unchanged. The page renders its `preview` as labeled
+before/after rows with per-change checkboxes, then sends the selected subset through
+`openPrefs.apply()` as a new proposal. The conventional controls continue to use
+`app/api/preferences/route.ts`. Both that route and the OpenPrefs adapter call `updateSettings()`,
+proving that natural language uses the application's existing mutation path.
 
 ## Build your own UI
 
 Start with [`app/page.tsx`](./app/page.tsx), then copy and restyle its natural-language form and
 confirmation dialog inside your application. OpenPrefs does not export UI components. Preserve the
-three correctness-critical parts while adapting the example: send the returned proposal back to
-`confirm()` unmodified, fall back to `proposal.changes` when a confirmation preview is partial or
-absent, and render clarification questions as text because resolver output is untrusted.
+three correctness-critical parts while adapting the example: submit the selected changes through
+`apply()` so the new proposal is fully revalidated, fall back to ids and `proposal.changes` when a
+confirmation preview is partial or absent, and render clarification questions as text because
+resolver output is untrusted.
 
 ## Run it
 

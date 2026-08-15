@@ -25,6 +25,14 @@ field is required. Live Phase 6 verification demonstrated this convention: with
 `enum: ["small", "medium", "large"]` and current value `"medium"`, “make the text bigger” resolved
 to `"large"` using declaration order alone.
 
+## Manifest labels
+
+Each preference definition may include a non-empty `label` copied from the host application's UI.
+It is presentational for hosts and useful resolver context because users often repeat the settings
+page's wording. Proposal validation, policy, and execution ignore it. Existing confirmation preview
+entries include the label when present so hosts can avoid rendering raw ids; hosts may also read it
+with `manifest.get(id)`.
+
 ## Request lifecycle and security boundary
 
 Before resolution, OpenPrefs calls the optional adapter `read(ids)` with every manifest id. A read

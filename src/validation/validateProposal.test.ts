@@ -164,6 +164,27 @@ const adversarialCases: readonly AdversarialCase[] = [
 ];
 
 describe("validateProposal", () => {
+  it("produces identical validation with or without a presentational label", () => {
+    const labeledManifest = definePreferences({
+      enabled: {
+        type: "boolean",
+        label: "Feature enabled",
+        description: "Whether the feature is enabled.",
+      },
+    });
+    const unlabeledManifest = definePreferences({
+      enabled: {
+        type: "boolean",
+        description: "Whether the feature is enabled.",
+      },
+    });
+    const proposal = { changes: [{ id: "enabled", value: true }] };
+
+    expect(validateProposal(labeledManifest, proposal)).toEqual(
+      validateProposal(unlabeledManifest, proposal),
+    );
+  });
+
   it("validates boolean, string, enum, and numeric changes without coercion", () => {
     const input = {
       changes: [

@@ -83,6 +83,7 @@ const settings = definePreferences({
 ```
 
 Descriptions matter — they're what the model reads. Write them the way a user would describe the setting.
+An optional `label` preserves the host UI's exact display text for confirmation and other presentation.
 
 ### 2. Point it at your existing settings code
 

@@ -6,6 +6,21 @@ and map user language to it without inventing semantics. Follow
 [the implemented architecture](../../../docs/architecture.md) for the manifest's implemented
 constraints.
 
+## Pair UI labels with resolver descriptions
+
+Populate `label` verbatim from the host's own UI label: use the exact string the settings page
+shows. Keep `description` as the resolver-facing semantic sentence that stands alone without the
+settings page's visual context. For example:
+
+```ts
+label: "In-app notifications",
+description: "Whether notifications appear in the in-app badges and drawer.",
+```
+
+A confirmation dialog that renders raw ids such as `notifications.channels.inApp` is the UX
+failure `label` exists to prevent. If no host UI label exists, omit `label`; never invent one from
+the id or description.
+
 ## The evidence rule
 
 Use only meaning supported by a UI label, help text, product documentation, meaningful comment, or

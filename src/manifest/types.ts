@@ -14,6 +14,9 @@ export interface BooleanPreferenceDefinition {
   /** Discriminates a boolean preference definition. */
   readonly type: "boolean";
 
+  /** Provides the host application's presentational label for the preference. */
+  readonly label?: string;
+
   /** Explains the preference's meaning to a resolver. */
   readonly description: string;
 
@@ -28,6 +31,9 @@ export interface BooleanPreferenceDefinition {
 export interface StringPreferenceDefinition {
   /** Discriminates a string preference definition. */
   readonly type: "string";
+
+  /** Provides the host application's presentational label for the preference. */
+  readonly label?: string;
 
   /** Explains the preference's meaning to a resolver. */
   readonly description: string;
@@ -51,6 +57,9 @@ export interface StringPreferenceDefinition {
 export interface NumberPreferenceDefinition {
   /** Discriminates a numeric preference definition. */
   readonly type: "number";
+
+  /** Provides the host application's presentational label for the preference. */
+  readonly label?: string;
 
   /** Explains the preference's meaning to a resolver. */
   readonly description: string;

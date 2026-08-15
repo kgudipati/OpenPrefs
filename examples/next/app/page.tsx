@@ -11,9 +11,9 @@ import type { AppSettings } from "../lib/settings";
 
 /*
  * This reference UI is meant to be copied into a host application and restyled.
- * Three details are load-bearing for correctness: confirm the exact proposal OpenPrefs returned,
- * fall back to proposal values when a read cannot produce a preview, and render clarification
- * questions through React text interpolation because they are untrusted model output.
+ * Three details are load-bearing for correctness: submit selected changes through apply(), fall
+ * back to proposal values when a read cannot produce a preview, and render clarification questions
+ * through React text interpolation because they are untrusted model output.
  */
 
 interface ApiResponse {
@@ -22,7 +22,7 @@ interface ApiResponse {
   readonly error?: string;
 }
 
-async function postPreferences(path: "request" | "confirm", body: unknown): Promise<ApiResponse> {
+async function postPreferences(path: "request" | "apply", body: unknown): Promise<ApiResponse> {
   const response = await fetch(`/api/preferences/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -93,10 +93,20 @@ function previewForChange(
   id: string,
   proposedValue: unknown,
   preview: readonly PreferenceChangePreview[] | undefined,
-): { readonly before?: unknown; readonly after: unknown; readonly hasBefore: boolean } {
+): {
+  readonly label?: string;
+  readonly before?: unknown;
+  readonly after: unknown;
+  readonly hasBefore: boolean;
+} {
   const previewChange = preview?.find((change) => change.id === id);
   if (previewChange !== undefined) {
-    return { before: previewChange.before, after: previewChange.after, hasBefore: true };
+    return {
+      ...(previewChange.label === undefined ? {} : { label: previewChange.label }),
+      before: previewChange.before,
+      after: previewChange.after,
+      hasBefore: true,
+    };
   }
 
   // A host read() may omit values, so the validated proposal is the required display fallback.
@@ -110,6 +120,7 @@ export default function SettingsPage() {
   const [message, setMessage] = useState("Loading your settings…");
   const [busy, setBusy] = useState(false);
   const [confirmation, setConfirmation] = useState<ConfirmationRequiredResult>();
+  const [selectedChangeIds, setSelectedChangeIds] = useState<readonly string[]>([]);
 
   const refresh = useCallback(async () => {
     const response = await fetch("/api/preferences");
@@ -128,7 +139,13 @@ export default function SettingsPage() {
 
   function handleResult(result: OpenPrefsResult): void {
     setMessage(resultMessage(result));
-    setConfirmation(result.status === "confirmation_required" ? result : undefined);
+    if (result.status === "confirmation_required") {
+      setConfirmation(result);
+      setSelectedChangeIds(result.proposal.changes.map((change) => String(change.id)));
+      return;
+    }
+    setConfirmation(undefined);
+    setSelectedChangeIds([]);
   }
 
   async function submitIntent(): Promise<void> {
@@ -151,11 +168,13 @@ export default function SettingsPage() {
     }
   }
 
-  async function confirmProposal(proposal: SettingsProposal): Promise<void> {
+  async function applySelectedChanges(changes: SettingsProposal["changes"]): Promise<void> {
     setBusy(true);
     try {
-      // Send the proposal back exactly as received; never reconstruct its changes on the client.
-      const payload = await postPreferences("confirm", { proposal });
+      // Deselecting constructs a new proposal, so apply() revalidates it from scratch instead of
+      // partially confirming an existing proposal. Under PR #24's policy semantics, this subset
+      // may also fall under maxChangesPerRequest even when the original proposal exceeded it.
+      const payload = await postPreferences("apply", { changes });
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }
@@ -163,11 +182,16 @@ export default function SettingsPage() {
         handleResult(payload.result);
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Confirmation failed.");
+      setMessage(error instanceof Error ? error.message : "Applying selected changes failed.");
     } finally {
       setBusy(false);
     }
   }
+
+  const selectedChanges =
+    confirmation?.proposal.changes.filter((change) =>
+      selectedChangeIds.includes(String(change.id)),
+    ) ?? [];
 
   async function saveControl(changes: Partial<AppSettings>): Promise<void> {
     setBusy(true);
@@ -355,9 +379,24 @@ export default function SettingsPage() {
               {confirmation.proposal.changes.map((change) => {
                 const id = String(change.id);
                 const row = previewForChange(id, change.value, confirmation.preview);
+                const selected = selectedChangeIds.includes(id);
                 return (
                   <div className="preview-row" key={id}>
-                    <strong>{id}</strong>
+                    <label className="change-selection">
+                      <input
+                        type="checkbox"
+                        checked={selected}
+                        disabled={busy}
+                        onChange={(event) => {
+                          setSelectedChangeIds((current) =>
+                            event.target.checked
+                              ? [...current, id]
+                              : current.filter((selectedId) => selectedId !== id),
+                          );
+                        }}
+                      />
+                      <strong>{row.label ?? id}</strong>
+                    </label>
                     {row.hasBefore ? (
                       <>
                         <span>{formatPreferenceValue(row.before)}</span>
@@ -377,16 +416,19 @@ export default function SettingsPage() {
               <button
                 className="secondary"
                 type="button"
-                onClick={() => setConfirmation(undefined)}
+                onClick={() => {
+                  setConfirmation(undefined);
+                  setSelectedChangeIds([]);
+                }}
               >
                 Cancel
               </button>
               <button
                 type="button"
-                disabled={busy}
-                onClick={() => void confirmProposal(confirmation.proposal)}
+                disabled={busy || selectedChanges.length === 0}
+                onClick={() => void applySelectedChanges(selectedChanges)}
               >
-                Confirm changes
+                Apply selected ({selectedChanges.length})
               </button>
             </div>
           </section>

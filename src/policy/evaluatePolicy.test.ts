@@ -6,7 +6,7 @@ import { evaluatePolicy } from "./evaluatePolicy";
 import { resolvePolicy } from "./resolvePolicy";
 import type { OpenPrefsPolicy, PolicyDecision } from "./types";
 
-const manifest = definePreferences({
+const definitions = {
   "unmarked.one": {
     type: "boolean",
     description: "The first unmarked preference.",
@@ -64,7 +64,17 @@ const manifest = definePreferences({
     description: "The third sensitive and confirmation-required preference.",
     openPrefs: { confirmation: "required", sensitive: true },
   },
-});
+} as const;
+
+const manifest = definePreferences(definitions);
+const labeledManifest = definePreferences(
+  Object.fromEntries(
+    Object.entries(definitions).map(([id, definition]) => [
+      id,
+      { ...definition, label: `Label for ${id}` },
+    ]),
+  ),
+);
 
 const modes = ["always", "sensitive", "never"] as const;
 const markings = ["unmarked", "sensitive", "required", "both"] as const;
@@ -140,8 +150,15 @@ describe("evaluatePolicy", () => {
       });
 
       const decision = evaluatePolicy({ manifest, policy, changes, rejections: [] });
+      const labeledDecision = evaluatePolicy({
+        manifest: labeledManifest,
+        policy,
+        changes,
+        rejections: [],
+      });
 
       expect(decision).toEqual(expectedDecision(testCase, changes));
+      expect(labeledDecision).toEqual(decision);
     },
   );
 
