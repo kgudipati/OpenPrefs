@@ -36,7 +36,12 @@ export interface SuccessfulExpectation {
 /** Exact non-mutating lifecycle expectation. */
 export interface NonMutatingExpectation {
   /** Lifecycle status a host must observe. */
-  readonly status: "needs_clarification" | "unsupported" | "rejected" | "failed";
+  readonly status:
+    | "already_satisfied"
+    | "needs_clarification"
+    | "unsupported"
+    | "rejected"
+    | "failed";
   /** Requires the host adapter to receive no changes for this case. */
   readonly noChangesApplied: true;
 }

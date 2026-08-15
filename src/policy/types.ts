@@ -11,11 +11,7 @@ export interface OpenPrefsPolicy {
 }
 
 /** Identifies why policy refused to let a request proceed. */
-export type PolicyRejectionReason =
-  | "proposal_rejected"
-  | "unknown_preference"
-  | "too_many_changes"
-  | "no_changes";
+export type PolicyRejectionReason = "proposal_rejected" | "unknown_preference" | "too_many_changes";
 
 /**
  * Describes whether validated preference changes may proceed or need user confirmation.
@@ -24,6 +20,15 @@ export type PolicyRejectionReason =
  * the entire request was refused. Every array in a returned decision is frozen.
  */
 export type PolicyDecision =
+  | {
+      /**
+       * Recognizes a clean empty proposal: validation produced zero changes and zero rejections.
+       *
+       * This outcome records only that no changes were proposed. It does not verify the host's
+       * current preference state.
+       */
+      readonly outcome: "already_satisfied";
+    }
   | {
       /** Allows the host to apply every validated change without further confirmation. */
       readonly outcome: "apply";
@@ -81,15 +86,5 @@ export type PolicyDecision =
       readonly reason: "unknown_preference";
 
       /** The complete change set withheld because at least one preference is unknown. */
-      readonly changes: readonly PreferenceChange[];
-    }
-  | {
-      /** Refuses a request that contains no validated changes. */
-      readonly outcome: "rejected";
-
-      /** The stable reason for refusing the empty request. */
-      readonly reason: "no_changes";
-
-      /** The empty validated change set. */
       readonly changes: readonly PreferenceChange[];
     };

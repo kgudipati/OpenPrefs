@@ -90,6 +90,12 @@ const idsByMarking = {
   both: ["both.one", "both.two", "both.three"],
 } as const;
 
+const emptyProposalRejection: ProposalRejection = {
+  code: "ID_UNKNOWN",
+  id: "missing",
+  message: 'Preference "missing" is not exposed by the manifest.',
+};
+
 interface MatrixCase {
   readonly mode: OpenPrefsPolicy["confirmation"];
   readonly marking: (typeof markings)[number];
@@ -267,16 +273,38 @@ describe("evaluatePolicy", () => {
     });
   });
 
-  it("rejects a request with no changes", () => {
-    expect(
-      evaluatePolicy({
-        manifest,
-        policy: resolvePolicy({ confirmation: "never" }),
+  it.each(modes)(
+    "returns already_satisfied for zero changes and zero rejections in %s mode",
+    (confirmation) => {
+      expect(
+        evaluatePolicy({
+          manifest,
+          policy: resolvePolicy({ confirmation }),
+          changes: [],
+          rejections: [],
+        }),
+      ).toEqual({ outcome: "already_satisfied" });
+    },
+  );
+
+  it.each(modes)(
+    "rejects zero changes when validation produced rejections in %s mode",
+    (confirmation) => {
+      expect(
+        evaluatePolicy({
+          manifest,
+          policy: resolvePolicy({ confirmation }),
+          changes: [],
+          rejections: [emptyProposalRejection],
+        }),
+      ).toEqual({
+        outcome: "rejected",
+        reason: "proposal_rejected",
         changes: [],
-        rejections: [],
-      }),
-    ).toEqual({ outcome: "rejected", reason: "no_changes", changes: [] });
-  });
+        rejections: [emptyProposalRejection],
+      });
+    },
+  );
 
   it("returns frozen copies without mutating policy inputs", () => {
     const changes = changesFor("unmarked", 1);
@@ -291,6 +319,10 @@ describe("evaluatePolicy", () => {
     const decision = evaluatePolicy(input);
 
     expect(decision).toEqual({ outcome: "apply", changes });
+    expect(decision.outcome).toBe("apply");
+    if (decision.outcome !== "apply") {
+      return;
+    }
     expect(Object.isFrozen(decision)).toBe(true);
     expect(Object.isFrozen(decision.changes)).toBe(true);
     expect(decision.changes).not.toBe(changes);

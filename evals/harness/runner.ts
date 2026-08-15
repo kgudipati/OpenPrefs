@@ -59,14 +59,14 @@ function lifecycleChanges(result: OpenPrefsResult): readonly PreferenceChange[] 
       return result.changes;
     case "failed":
       return result.applied;
+    case "already_satisfied":
     case "needs_clarification":
     case "unsupported":
       return [];
-    default: {
-      const unhandledResult: never = result;
-      return unhandledResult;
-    }
   }
+
+  const unhandledResult: never = result;
+  return unhandledResult;
 }
 
 function changeKey(change: PreferenceChange): string {

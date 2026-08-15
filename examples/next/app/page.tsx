@@ -51,10 +51,6 @@ function rejectedMessage(result: Extract<OpenPrefsResult, { status: "rejected" }
   if (result.reason === "unknown_preference") {
     return "OpenPrefs rejected the proposal because it named a preference this app does not expose.";
   }
-  if (result.reason === "no_changes") {
-    return "OpenPrefs rejected the proposal because it did not contain any changes.";
-  }
-
   const unhandledResult: never = result;
   return unhandledResult;
 }
@@ -63,6 +59,8 @@ function resultMessage(result: OpenPrefsResult): string {
   switch (result.status) {
     case "applied":
       return `Applied ${result.applied.length} preference change${result.applied.length === 1 ? "" : "s"}.`;
+    case "already_satisfied":
+      return "Those settings are already set that way.";
     case "needs_clarification":
       return result.question;
     case "unsupported":

@@ -248,6 +248,20 @@ describe("createOpenPrefs", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
+  it("returns already_satisfied for a clean empty resolution without calling the adapter", async () => {
+    const apply = successfulApply();
+    const openPrefs = openPrefsFor({
+      adapter: { apply },
+      resolver: new ScriptedResolver(resolved()),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Turn off notification sounds")).resolves.toEqual({
+      status: "already_satisfied",
+    });
+    expect(apply).not.toHaveBeenCalled();
+  });
+
   it("rejects a hallucinated preference id and never calls the adapter", async () => {
     const apply = successfulApply();
     const openPrefs = openPrefsFor({
@@ -538,11 +552,6 @@ describe("createOpenPrefs", () => {
 
   it.each([
     {
-      name: "proposal_rejected",
-      result: resolved({ id: "missing", value: true }),
-      policy: { confirmation: "never" } satisfies Partial<OpenPrefsPolicy>,
-    },
-    {
       name: "too_many_changes",
       result: resolved({ id: "theme", value: "dark" }, { id: "volume", value: 5 }),
       policy: {
@@ -551,8 +560,8 @@ describe("createOpenPrefs", () => {
       } satisfies Partial<OpenPrefsPolicy>,
     },
     {
-      name: "no_changes",
-      result: resolved(),
+      name: "proposal_rejected with zero validated changes",
+      result: resolved({ id: "missing", value: true }),
       policy: { confirmation: "never" } satisfies Partial<OpenPrefsPolicy>,
     },
   ])("never calls adapter.apply for a $name rejection", async ({ result, policy }) => {
@@ -672,7 +681,7 @@ describe("createOpenPrefs", () => {
 
   it("represents every policy rejection reason in the public result type", () => {
     expectTypeOf<RejectedResult["reason"]>().toEqualTypeOf<
-      "proposal_rejected" | "too_many_changes" | "unknown_preference" | "no_changes"
+      "proposal_rejected" | "too_many_changes" | "unknown_preference"
     >();
   });
 });

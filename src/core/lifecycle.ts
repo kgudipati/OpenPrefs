@@ -71,17 +71,10 @@ function rejectedResult(
         reason: decision.reason,
         changes: decision.changes,
       });
-    case "no_changes":
-      return Object.freeze({
-        status: "rejected",
-        reason: decision.reason,
-        changes: decision.changes,
-      });
-    default: {
-      const unhandledDecision: never = decision;
-      return unhandledDecision;
-    }
   }
+
+  const unhandledDecision: never = decision;
+  return unhandledDecision;
 }
 
 function confirmationResult(
@@ -203,6 +196,9 @@ export async function runProposal<Manifest extends PreferencesManifest>(
       rejections: validation.rejections,
     });
 
+    if (decision.outcome === "already_satisfied") {
+      return Object.freeze({ status: "already_satisfied" });
+    }
     if (decision.outcome === "rejected") {
       return rejectedResult(decision);
     }

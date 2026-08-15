@@ -2,11 +2,11 @@ export type { ApplyFailure, ApplyResult, PreferencesAdapter } from "./adapter/ty
 export type { CreateOpenPrefsOptions, OpenPrefs } from "./core/createOpenPrefs";
 export { createOpenPrefs } from "./core/createOpenPrefs";
 export type {
+  AlreadySatisfiedResult,
   AppliedResult,
   ConfirmationRequiredResult,
   FailedResult,
   NeedsClarificationResult,
-  NoChangesRejectedResult,
   OpenPrefsResult,
   PreferenceChangePreview,
   ProposalRejectedResult,

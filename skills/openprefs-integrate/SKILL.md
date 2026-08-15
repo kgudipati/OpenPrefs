@@ -357,6 +357,12 @@ load-bearing for adversarial containment. They must not trim those instructions 
 the adversarial eval class. Do not add a model, inference SDK, backend, or provider dependency as
 part of this integration.
 
+When generating a host UI, handle `already_satisfied` explicitly. Present it as an informational
+outcome, never as an error or rejection. It means only that the resolver proposed no changes; it
+does not prove that OpenPrefs independently read and verified the host's current state. Use calm
+copy such as “Those settings are already set that way,” while keeping `unsupported` and `rejected`
+as distinct outcomes.
+
 ### 8. Verify and report
 
 Run the repository's formatter, typecheck, tests, build, and any integration checks that do not

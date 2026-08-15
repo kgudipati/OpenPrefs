@@ -9,7 +9,8 @@ function freezeChanges(changes: readonly PreferenceChange[]): readonly Preferenc
 }
 
 /**
- * Decides whether a validated request is refused, needs confirmation, or may be applied.
+ * Decides whether a validated request is already satisfied, refused, needs confirmation, or may
+ * be applied.
  *
  * Global policy gates sensitivity, while an explicit preference-level confirmation requirement is
  * an unconditional floor. The function performs no I/O and does not mutate the manifest, policy,
@@ -36,6 +37,10 @@ export function evaluatePolicy(input: {
     });
   }
 
+  if (changes.length === 0) {
+    return Object.freeze({ outcome: "already_satisfied" });
+  }
+
   const metadataById = new Map<string, OpenPrefsMetadata | undefined>();
   for (const change of changes) {
     const definition = manifest.get(change.id);
@@ -47,14 +52,6 @@ export function evaluatePolicy(input: {
       });
     }
     metadataById.set(change.id, definition.openPrefs);
-  }
-
-  if (changes.length === 0) {
-    return Object.freeze({
-      outcome: "rejected",
-      reason: "no_changes",
-      changes: decisionChanges,
-    });
   }
 
   const requiredBy: string[] = [];

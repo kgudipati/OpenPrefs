@@ -47,6 +47,32 @@ Policy evaluates the request as a whole. A request awaiting confirmation returns
 proposal; `confirm(proposal)` revalidates and reevaluates that proposal before execution. Calling
 `confirm()` is the host's assertion that the user approved that exact proposal.
 
+## Empty proposals and result semantics
+
+After a successful `resolved` resolver result crosses validation, policy returns
+`already_satisfied` exactly when validation produced **zero changes and zero rejections**. The
+corresponding lifecycle result is `{ status: "already_satisfied" }`, and the adapter is not called.
+This is a policy outcome inside the existing lifecycle and does not change the security boundary.
+
+The status records only that the resolver proposed no changes. OpenPrefs cannot infer from an empty
+proposal that it independently read and verified every relevant host value, so hosts should treat
+the outcome as informational without overstating that guarantee.
+
+The nearby outcomes remain semantically distinct:
+
+| Condition | Result | Meaning |
+| --- | --- | --- |
+| Zero validated changes and zero rejections | `already_satisfied` | The resolver proposed no changes. |
+| One or more validation rejections, including when zero changes survive | `rejected / proposal_rejected` | Something in the proposal was refused. |
+| Resolver returns `unsupported` | `unsupported` | The manifest cannot express the request; the app exposes no matching setting. |
+
+The former `rejected / no_changes` variant was removed before the first npm publish because no input
+could produce it. Validation assigns every proposed entry to either `changes` or `rejections`.
+Policy checks rejections first, so an empty set with any rejection is `proposal_rejected`; an empty
+set without rejections is `already_satisfied`. No resolver output, policy configuration, or manifest
+shape creates a third empty condition, and keeping one in the public union would require hosts to
+handle an impossible result.
+
 ## Resolver output boundary
 
 `ResolveResult` is an authoring convenience, not a runtime guarantee. Core treats every resolver
