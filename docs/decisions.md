@@ -2,6 +2,23 @@
 
 Entries are ordered newest first.
 
+## 2026-08-15 — Defer preference grouping until a capable-model failure
+
+- **Context:** A live integration tested description-level category enumeration as a substitute for
+  explicit preference grouping. A capable current-generation small model produced the same 7 of 7
+  correct outcomes before and after category enumeration. On the unchanged manifest and prompt, an
+  older small model produced 3 of 7 correct outcomes.
+- **Decision:** Do not add preference grouping based on weak-model failures or assume that enumerating
+  category membership in every description supplies a missing manifest primitive. Model capability,
+  not description-level grouping, explained the measured result.
+- **Rationale:** OpenPrefs should not widen the manifest for a limitation that a capable model does
+  not exhibit. Descriptions should still carry evidence-backed category context because that helps
+  resolver input remain self-contained, but exhaustive enumeration is not a demonstrated substitute
+  for, or justification for, a grouping feature.
+- **Revisit when:** A capable current-generation model fails multi-preference intent against an
+  evidence-backed manifest and the failure demonstrates that an explicit preference relationship is
+  missing. Failure from a weak model is not sufficient evidence.
+
 ## 2026-08-15 — Keep array-valued preferences unsupported
 
 - **Status:** Accepted; confirms product specification section 9.

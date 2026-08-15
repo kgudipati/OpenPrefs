@@ -14,6 +14,9 @@ Use Conventional Commits in the form `<type>(<scope>): <subject>`.
 
 Allowed scopes are `manifest`, `validation`, `policy`, `execution`, `adapter`, `resolver`, `core`, `skill`, `evals`, `examples`, `docs`, `ci`, and `deps`.
 
+A scope names an area of the codebase, not an individual file. Documentation changes use the scope
+of the area they document; do not add file-name scopes such as `readme` or `changelog`.
+
 Write the subject in the imperative mood and lowercase, without a trailing period. Keep it at or below 72 characters. The commit body explains why the change is necessary, not what the diff does, and wraps at 100 characters.
 
 Mark breaking changes with `!` after the scope and add a `BREAKING CHANGE:` footer.
@@ -33,8 +36,8 @@ Inline comments explain why the code exists or why a non-obvious choice is safe;
 ## Documentation examples
 
 Obsolete API shapes may be named in prose and inline code when documenting why they are invalid.
-They must never appear in fenced code examples, because fenced blocks are what developers copy into
-their integrations.
+They must never appear in Markdown code examples, whether fenced or indented, because code blocks
+are what developers copy into their integrations.
 
 ## Code style
 

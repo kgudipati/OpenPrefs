@@ -102,7 +102,7 @@ The `typeof settings` type parameter gives you autocomplete for each change and 
 
 That's it. `updateSettings` is whatever you already have — a Zustand store, a REST call, Prisma, `localStorage`. OpenPrefs doesn't care and doesn't replace it.
 
-### 3. Bring your model
+### 3. Bring your own resolver
 
 ```ts
 const resolver: PreferencesResolver = {
@@ -116,7 +116,16 @@ const resolver: PreferencesResolver = {
 export const openPrefs = createOpenPrefs({ preferences: settings, adapter, resolver });
 ```
 
-Any model, any provider, self-hosted or API. A complete working implementation is in [`examples/typescript`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript) — 307 lines with `fetch`, no SDK. Typical cost is a fraction of a cent per request on a small model.
+Any provider, self-hosted or API. A complete working implementation is in [`examples/typescript`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript) — 307 lines with `fetch`, no SDK. Typical cost is a fraction of a cent per request on a small model.
+
+Resolver quality depends more on model choice than manifest design. This is constrained structured
+extraction, not a reasoning-heavy task, so the smallest current-generation model is usually the
+right default rather than the largest; older small models can invert polarity on negated requests
+(`turn off X` becomes `X: true`) or treat ambiguity as permission to act instead of asking. In one
+live integration against 38 settings, an older small model produced 3 of 7 correct outcomes while a
+current-generation small model produced 7 of 7 with the identical manifest and prompt. Models
+change, so neither result is a model recommendation: use a current model and run the
+[eval suite](https://github.com/kgudipati/OpenPrefs/tree/main/evals) against your own manifest.
 
 ### 4. Wire up a route and a text box
 

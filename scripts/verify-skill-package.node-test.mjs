@@ -20,6 +20,12 @@ test("rejects a fenced legacy whitespace variant", () => {
   assert.deepEqual(findLegacySuccessExamples(markdown), [{ line: 1 }]);
 });
 
+test("rejects a four-space indented legacy return example", () => {
+  const markdown = "    return { success: true };";
+
+  assert.deepEqual(findLegacySuccessExamples(markdown), [{ line: 1 }]);
+});
+
 test("allows a fenced valid success example", () => {
   const markdown = ["```ts", "return { ok: true };", "```"].join("\n");
 
