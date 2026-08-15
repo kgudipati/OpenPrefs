@@ -28,9 +28,22 @@ keyword resolver suite, hosted-resolver tests, and CLI end-to-end test.
 ## Hosted resolver
 
 `llmResolver.ts` is a real HTTP resolver for OpenAI's Responses API and defaults to `gpt-5.6`.
-Set `OPENAI_API_KEY` to activate it; without that variable the CLI remains deterministic. Override
-the model with `OPENPREFS_MODEL`. No provider SDK is installed because the example uses `fetch`
-directly.
+Set `OPENAI_API_KEY` to activate it; without that variable the default CLI remains deterministic.
+Override the model with `OPENPREFS_MODEL`. No provider SDK is installed because the example uses
+`fetch` directly.
+
+For a hosted-only run, copy `.env.example` to the gitignored `.env`, fill in the local values, and
+export them into the command environment:
+
+```sh
+set -a
+source .env
+set +a
+npm run demo:hosted -- "turn off marketing notifications and use dark mode"
+```
+
+`demo:hosted` exits with a clear `OPENAI_API_KEY` message instead of attempting an unauthenticated
+provider call. The example reads credentials only from `process.env`; it never loads `.env` itself.
 
 OpenAI is only the documented example provider. To use another hosted or local resolver, implement
 `PreferencesResolver.resolve(input)`, build context from `input.preferences` and `input.current`,

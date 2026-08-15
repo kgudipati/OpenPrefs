@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit",
     "demo": "tsx src/cli.ts",
+    "demo:hosted": "tsx src/hostedCli.ts",
     "test": "vitest run",
     "verify": "npm run build && npm run test"
   },
