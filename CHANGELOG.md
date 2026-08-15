@@ -7,6 +7,20 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.1.0-beta.2] - 2026-08-15
+
+### Added
+
+- Shipped `docs/architecture.md` in the package so installed integration skills can consult the
+  authoritative implemented semantics.
+- Added integration-skill guidance for dot-separated nested preference ids, dynamic registry-backed
+  enums, and mechanically incomplete host settings that must be reported as untraced.
+
+### Fixed
+
+- Corrected installed-package links from the integration skill and its reference guides, removed
+  references to unshipped test directories, and verified document links from a fresh tarball install.
+
 ## [0.1.0-beta.1] - 2026-08-14
 
 ### Pre-release
@@ -48,5 +62,6 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The release baseline records 45/45 security containment for both deterministic and hosted
   resolvers, including a manipulated hosted-model proposal stopped by policy before mutation.
 
-[Unreleased]: https://github.com/kgudipati/OpenPrefs/compare/v0.1.0-beta.1...HEAD
+[Unreleased]: https://github.com/kgudipati/OpenPrefs/compare/v0.1.0-beta.2...HEAD
+[0.1.0-beta.2]: https://github.com/kgudipati/OpenPrefs/compare/v0.1.0-beta.1...v0.1.0-beta.2
 [0.1.0-beta.1]: https://github.com/kgudipati/OpenPrefs/releases/tag/v0.1.0-beta.1
