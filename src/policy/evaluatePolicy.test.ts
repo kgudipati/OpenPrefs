@@ -113,6 +113,12 @@ function changesFor(marking: MatrixCase["marking"], count: number): PreferenceCh
   return idsByMarking[marking].slice(0, count).map((id) => ({ id, value: true }));
 }
 
+function nonRedundantCurrent(
+  changes: readonly PreferenceChange[],
+): Readonly<Record<string, false>> {
+  return Object.fromEntries(changes.map(({ id }) => [id, false]));
+}
+
 function expectedDecision(
   testCase: MatrixCase,
   changes: readonly PreferenceChange[],
@@ -147,20 +153,22 @@ function expectedDecision(
 
 describe("evaluatePolicy", () => {
   it.each(matrix)(
-    "returns the exact decision for mode=$mode marking=$marking count=$position",
+    "returns the exact decision for non-redundant mode=$mode marking=$marking count=$position",
     (testCase) => {
       const changes = changesFor(testCase.marking, testCase.count);
+      const current = nonRedundantCurrent(changes);
       const policy = resolvePolicy({
         confirmation: testCase.mode,
         maxChangesPerRequest: 2,
       });
 
-      const decision = evaluatePolicy({ manifest, policy, changes, rejections: [] });
+      const decision = evaluatePolicy({ manifest, policy, changes, rejections: [], current });
       const labeledDecision = evaluatePolicy({
         manifest: labeledManifest,
         policy,
         changes,
         rejections: [],
+        current,
       });
 
       expect(decision).toEqual(expectedDecision(testCase, changes));
@@ -239,6 +247,7 @@ describe("evaluatePolicy", () => {
       policy: resolvePolicy({ confirmation: "never" }),
       changes,
       rejections: [],
+      current: { missing: true },
     });
 
     expect(decision).toEqual({
@@ -263,6 +272,7 @@ describe("evaluatePolicy", () => {
       policy: resolvePolicy({ confirmation: "always", maxChangesPerRequest: 1 }),
       changes,
       rejections,
+      current: Object.fromEntries(changes.map(({ id, value }) => [id, value])),
     });
 
     expect(decision).toEqual({
@@ -286,6 +296,37 @@ describe("evaluatePolicy", () => {
       ).toEqual({ outcome: "already_satisfied" });
     },
   );
+
+  it.each(modes)(
+    "returns already_satisfied when every change strictly equals current in %s mode",
+    (confirmation) => {
+      const changes = changesFor("unmarked", 2);
+
+      expect(
+        evaluatePolicy({
+          manifest,
+          policy: resolvePolicy({ confirmation }),
+          changes,
+          rejections: [],
+          current: Object.fromEntries(changes.map(({ id, value }) => [id, value])),
+        }),
+      ).toEqual({ outcome: "already_satisfied" });
+    },
+  );
+
+  it("uses strict equality when comparing changes with current values", () => {
+    const changes = changesFor("unmarked", 1);
+
+    expect(
+      evaluatePolicy({
+        manifest,
+        policy: resolvePolicy({ confirmation: "never" }),
+        changes,
+        rejections: [],
+        current: { "unmarked.one": 1 },
+      }),
+    ).toEqual({ outcome: "apply", changes });
+  });
 
   it.each(modes)(
     "rejects zero changes when validation produced rejections in %s mode",

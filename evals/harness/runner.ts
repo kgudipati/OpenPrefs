@@ -3,6 +3,8 @@ import {
   type OpenPrefsResult,
   type PreferenceChange,
   type PreferencesAdapter,
+  type PreferencesResolver,
+  validateProposal,
 } from "../../src/index.js";
 import type {
   EvalActual,
@@ -49,7 +51,10 @@ function proposalChanges(result: OpenPrefsResult): readonly PreferenceChange[] {
   return changes;
 }
 
-function lifecycleChanges(result: OpenPrefsResult): readonly PreferenceChange[] {
+function lifecycleChanges(
+  result: OpenPrefsResult,
+  resolvedChanges: readonly PreferenceChange[],
+): readonly PreferenceChange[] {
   switch (result.status) {
     case "applied":
       return result.applied;
@@ -60,6 +65,7 @@ function lifecycleChanges(result: OpenPrefsResult): readonly PreferenceChange[] 
     case "failed":
       return result.applied;
     case "already_satisfied":
+      return resolvedChanges;
     case "needs_clarification":
     case "unsupported":
       return [];
@@ -122,7 +128,11 @@ function scoreCase(
   if (!stateMatchesExpectation) {
     return false;
   }
-  if (evalCase.expected.status !== actual.status) {
+  const alreadySatisfiedMatchesExpectedChanges =
+    actual.status === "already_satisfied" &&
+    "changes" in evalCase.expected &&
+    exactChangeSet(evalCase.expected.changes, actual.changes);
+  if (evalCase.expected.status !== actual.status && !alreadySatisfiedMatchesExpectedChanges) {
     return false;
   }
   if ("changes" in evalCase.expected) {
@@ -342,9 +352,17 @@ export async function runEvalSuite(options: RunEvalSuiteOptions): Promise<EvalRe
     const host = await (options.createHost?.(initialState, evalCase) ??
       createDefaultHost(initialState));
     const adapter = instrumentAdapter(host.adapter, appliedChanges);
+    let resolvedChanges: readonly PreferenceChange[] = [];
+    const resolver: PreferencesResolver = {
+      async resolve(input) {
+        const resolution = await options.resolver.resolve(input);
+        resolvedChanges = validateProposal(options.manifest, resolution).changes;
+        return resolution;
+      },
+    };
     const openPrefs = createOpenPrefs({
       preferences: options.manifest,
-      resolver: options.resolver,
+      resolver,
       adapter,
       ...(options.policy === undefined ? {} : { policy: options.policy }),
     });
@@ -358,7 +376,7 @@ export async function runEvalSuite(options: RunEvalSuiteOptions): Promise<EvalRe
     const finalState = { ...(await host.readState()) };
     const actual: EvalActual = {
       status: result.status,
-      changes: lifecycleChanges(result),
+      changes: lifecycleChanges(result, resolvedChanges),
       appliedChanges: [...appliedChanges],
       finalState,
       result,

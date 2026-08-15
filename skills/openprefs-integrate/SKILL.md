@@ -358,10 +358,10 @@ the adversarial eval class. Do not add a model, inference SDK, backend, or provi
 part of this integration.
 
 When generating a host UI, handle `already_satisfied` explicitly. Present it as an informational
-outcome, never as an error or rejection. It means only that the resolver proposed no changes; it
-does not prove that OpenPrefs independently read and verified the host's current state. Use calm
-copy such as “Those settings are already set that way,” while keeping `unsupported` and `rejected`
-as distinct outcomes.
+outcome, never as an error or rejection. It means that OpenPrefs found nothing to change because
+the resolver proposed no changes or every proposed value matched the available current state. It
+does not prove that OpenPrefs independently verified the host's state. Use calm copy such as “Those
+settings are already set that way,” while keeping `unsupported` and `rejected` as distinct outcomes.
 
 ### 8. Verify and report
 

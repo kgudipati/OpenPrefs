@@ -25,9 +25,12 @@ export type EvalValue = boolean | string | number;
 /** Host-owned state supplied to the full OpenPrefs request pipeline. */
 export type EvalState = Readonly<Record<string, EvalValue>>;
 
-/** Exact successful lifecycle expectation and its complete change set. */
+/** Successful intent expectation and its complete change set. */
 export interface SuccessfulExpectation {
-  /** Lifecycle status a host must observe after validation and policy. */
+  /**
+   * Lifecycle status expected when changes are needed; `already_satisfied` also passes when its
+   * validated no-op proposal and final state exactly match this expectation.
+   */
   readonly status: "applied" | "confirmation_required";
   /** Complete order-independent set of expected preference mutations. */
   readonly changes: readonly PreferenceChange[];
@@ -96,7 +99,7 @@ export interface ResolverObservation {
 export interface EvalActual {
   /** Lifecycle status returned by OpenPrefs. */
   readonly status: OpenPrefsResult["status"];
-  /** Applied changes or the validated proposal awaiting confirmation. */
+  /** Validated changes represented by the result, including known no-op proposals. */
   readonly changes: readonly PreferenceChange[];
   /** Changes the host adapter actually received. */
   readonly appliedChanges: readonly PreferenceChange[];

@@ -1,3 +1,4 @@
+import { readOwnDataProperty } from "../internal/guards";
 import type { PreferencesManifest } from "../manifest/manifest";
 import type { OpenPrefsMetadata } from "../manifest/types";
 import type { PreferenceChange } from "../proposal/types";
@@ -14,9 +15,10 @@ function freezeChanges(changes: readonly PreferenceChange[]): readonly Preferenc
  *
  * Global policy gates sensitivity, while an explicit preference-level confirmation requirement is
  * an unconditional floor. The function performs no I/O and does not mutate the manifest, policy,
- * changes, or rejections it receives.
+ * changes, rejections, or current values it receives.
  *
- * @param input - The trusted manifest, resolved policy, validated changes, and validation failures.
+ * @param input - The trusted manifest, resolved policy, validated changes, validation failures, and
+ * optional current values.
  * @returns A frozen decision that covers the entire request without executing any change.
  */
 export function evaluatePolicy(input: {
@@ -24,8 +26,9 @@ export function evaluatePolicy(input: {
   readonly policy: OpenPrefsPolicy;
   readonly changes: readonly PreferenceChange[];
   readonly rejections: readonly ProposalRejection[];
+  readonly current?: Readonly<object>;
 }): PolicyDecision {
-  const { manifest, policy, changes, rejections } = input;
+  const { manifest, policy, changes, rejections, current } = input;
   const decisionChanges = freezeChanges(changes);
 
   if (rejections.length > 0) {
@@ -52,6 +55,16 @@ export function evaluatePolicy(input: {
       });
     }
     metadataById.set(change.id, definition.openPrefs);
+  }
+
+  const allChangesMatchCurrent =
+    current !== undefined &&
+    changes.every((change) => {
+      const currentValue = readOwnDataProperty(current, change.id);
+      return currentValue.found && currentValue.value === change.value;
+    });
+  if (allChangesMatchCurrent) {
+    return Object.freeze({ outcome: "already_satisfied" });
   }
 
   const requiredBy: string[] = [];

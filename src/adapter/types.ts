@@ -58,7 +58,8 @@ export type ApplyResult =
  * Connects OpenPrefs to a host application's existing preference operations.
  *
  * Applying changes is required. Reading current values is optional progressive enhancement used
- * for resolver context and confirmation previews; the adapter owns neither policy nor validation.
+ * for resolver context, all-no-op detection, and confirmation previews; the adapter owns neither
+ * policy nor validation.
  */
 export interface PreferencesAdapter<Manifest extends PreferencesManifest = PreferencesManifest> {
   /** Retains the manifest type invariant without adding a runtime property. */

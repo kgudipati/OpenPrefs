@@ -10,7 +10,8 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ### Added
 
 - Added `already_satisfied` to the public result union for clean resolved proposals containing zero
-  changes and zero validation rejections. Hosts that switch exhaustively on `status` must handle
+  changes and zero validation rejections, or containing only proposed values that strictly equal
+  the current values supplied by `read()`. Hosts that switch exhaustively on `status` must handle
   the new variant.
 
 ### Removed
