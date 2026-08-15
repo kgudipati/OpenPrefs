@@ -681,7 +681,7 @@ describe("createOpenPrefs", () => {
 
   it("represents every policy rejection reason in the public result type", () => {
     expectTypeOf<RejectedResult["reason"]>().toEqualTypeOf<
-      "proposal_rejected" | "too_many_changes" | "unknown_preference" | "no_changes"
+      "proposal_rejected" | "too_many_changes" | "unknown_preference"
     >();
   });
 });

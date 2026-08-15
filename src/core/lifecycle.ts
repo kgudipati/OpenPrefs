@@ -71,12 +71,6 @@ function rejectedResult(
         reason: decision.reason,
         changes: decision.changes,
       });
-    case "no_changes":
-      return Object.freeze({
-        status: "rejected",
-        reason: decision.reason,
-        changes: decision.changes,
-      });
   }
 
   const unhandledDecision: never = decision;

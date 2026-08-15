@@ -7,7 +7,6 @@ export type {
   ConfirmationRequiredResult,
   FailedResult,
   NeedsClarificationResult,
-  NoChangesRejectedResult,
   OpenPrefsResult,
   PreferenceChangePreview,
   ProposalRejectedResult,

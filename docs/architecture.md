@@ -66,11 +66,12 @@ The nearby outcomes remain semantically distinct:
 | One or more validation rejections, including when zero changes survive | `rejected / proposal_rejected` | Something in the proposal was refused. |
 | Resolver returns `unsupported` | `unsupported` | The manifest cannot express the request; the app exposes no matching setting. |
 
-`rejected / no_changes` remains in `PolicyDecision` and `OpenPrefsResult` as defense in depth for an
-empty change set that did not arise from clean resolution. It is unreachable through the current
-validator and policy evaluator: an empty set with rejections is `proposal_rejected`, while an empty
-set without rejections is `already_satisfied`. Removing `no_changes` is therefore not necessary for
-this additive pre-publish change and would create unrelated public-union churn.
+The former `rejected / no_changes` variant was removed before the first npm publish because no input
+could produce it. Validation assigns every proposed entry to either `changes` or `rejections`.
+Policy checks rejections first, so an empty set with any rejection is `proposal_rejected`; an empty
+set without rejections is `already_satisfied`. No resolver output, policy configuration, or manifest
+shape creates a third empty condition, and keeping one in the public union would require hosts to
+handle an impossible result.
 
 ## Resolver output boundary
 

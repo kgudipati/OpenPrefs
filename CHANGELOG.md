@@ -13,6 +13,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   changes and zero validation rejections. Hosts that switch exhaustively on `status` must handle
   the new variant.
 
+### Removed
+
+- Removed the unreachable `rejected / no_changes` public variants before the first npm publish;
+  clean empty proposals are `already_satisfied`, while empty validation failures are
+  `rejected / proposal_rejected`.
+
 ## [0.1.0-beta.2] - 2026-08-15
 
 ### Added

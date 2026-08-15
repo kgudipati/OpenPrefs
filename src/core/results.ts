@@ -147,29 +147,11 @@ export interface UnknownPreferenceRejectedResult {
   readonly changes: readonly PreferenceChange[];
 }
 
-/**
- * Reports a defensive empty-proposal refusal that is unreachable through the standard lifecycle.
- *
- * Validation failures produce `proposal_rejected`, while a clean proposal with no changes produces
- * `already_satisfied`. This variant remains in the public union as defense in depth.
- */
-export interface NoChangesRejectedResult {
-  /** Discriminates a policy refusal. */
-  readonly status: "rejected";
-
-  /** Identifies the empty change set as the reason for refusal. */
-  readonly reason: "no_changes";
-
-  /** The empty validated change set. */
-  readonly changes: readonly PreferenceChange[];
-}
-
 /** Represents every policy refusal and preserves its reason-specific diagnostics. */
 export type RejectedResult =
   | ProposalRejectedResult
   | TooManyChangesRejectedResult
-  | UnknownPreferenceRejectedResult
-  | NoChangesRejectedResult;
+  | UnknownPreferenceRejectedResult;
 
 /**
  * Represents every expected outcome of an OpenPrefs request, confirmation, or direct apply call.

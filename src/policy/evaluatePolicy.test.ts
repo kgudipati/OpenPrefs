@@ -344,7 +344,6 @@ describe("evaluatePolicy", () => {
       RejectedDecision,
       { readonly reason: "unknown_preference" }
     >;
-    type NoChangesDecision = Extract<RejectedDecision, { readonly reason: "no_changes" }>;
 
     expectTypeOf<ProposalRejectedDecision>().toEqualTypeOf<{
       readonly outcome: "rejected";
@@ -362,11 +361,6 @@ describe("evaluatePolicy", () => {
     expectTypeOf<UnknownPreferenceDecision>().toEqualTypeOf<{
       readonly outcome: "rejected";
       readonly reason: "unknown_preference";
-      readonly changes: readonly PreferenceChange[];
-    }>();
-    expectTypeOf<NoChangesDecision>().toEqualTypeOf<{
-      readonly outcome: "rejected";
-      readonly reason: "no_changes";
       readonly changes: readonly PreferenceChange[];
     }>();
   });

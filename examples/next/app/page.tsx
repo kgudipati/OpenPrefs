@@ -51,10 +51,6 @@ function rejectedMessage(result: Extract<OpenPrefsResult, { status: "rejected" }
   if (result.reason === "unknown_preference") {
     return "OpenPrefs rejected the proposal because it named a preference this app does not expose.";
   }
-  if (result.reason === "no_changes") {
-    return "OpenPrefs rejected the proposal because it did not contain any changes.";
-  }
-
   const unhandledResult: never = result;
   return unhandledResult;
 }
