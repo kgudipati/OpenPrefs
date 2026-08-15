@@ -7,7 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-## [0.1.0] - 2026-08-14
+## [0.1.0-beta.1] - 2026-08-14
+
+### Pre-release
+
+- Distributed as a GitHub Release tarball for a small tester group. This prerelease is not
+  published to npm and does not claim the package name in the registry.
 
 ### Added
 
@@ -43,5 +48,5 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - The release baseline records 45/45 security containment for both deterministic and hosted
   resolvers, including a manipulated hosted-model proposal stopped by policy before mutation.
 
-[Unreleased]: https://github.com/kgudipati/OpenPrefs/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/kgudipati/OpenPrefs/releases/tag/v0.1.0
+[Unreleased]: https://github.com/kgudipati/OpenPrefs/compare/v0.1.0-beta.1...HEAD
+[0.1.0-beta.1]: https://github.com/kgudipati/OpenPrefs/releases/tag/v0.1.0-beta.1

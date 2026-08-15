@@ -37,9 +37,8 @@ The model never touches your app. It proposes; OpenPrefs verifies against a list
 
 ## Install
 
-```sh
-npm install openprefs
-```
+> **Temporary beta:** OpenPrefs is not yet on npm. Download the beta tarball from GitHub Releases,
+> then install it with `npm install ./openprefs-0.1.0-beta.1.tgz`.
 
 Zero dependencies. Works in Node, the browser, and React Native.
 
@@ -53,7 +52,12 @@ This is the whitelist. Anything not listed here cannot be changed, no matter wha
 
 ```ts
 // lib/openprefs.ts
-import { createOpenPrefs, definePreferences } from "openprefs";
+import {
+  createOpenPrefs,
+  definePreferences,
+  type PreferencesAdapter,
+  type PreferencesResolver,
+} from "openprefs";
 import { getSettings, updateSettings } from "@/lib/settings";
 
 const settings = definePreferences({
@@ -83,7 +87,7 @@ Descriptions matter — they're what the model reads. Write them the way a user 
 ### 2. Point it at your existing settings code
 
 ```ts
-const adapter = {
+const adapter: PreferencesAdapter<typeof settings> = {
   read: () => getSettings(),
   async apply(changes) {
     await updateSettings(
@@ -94,12 +98,14 @@ const adapter = {
 };
 ```
 
+The `typeof settings` type parameter gives you autocomplete for each change and catches mismatches between your adapter and settings list.
+
 That's it. `updateSettings` is whatever you already have — a Zustand store, a REST call, Prisma, `localStorage`. OpenPrefs doesn't care and doesn't replace it.
 
 ### 3. Bring your model
 
 ```ts
-const resolver = {
+const resolver: PreferencesResolver = {
   async resolve({ text, preferences, current }) {
     // Send text + settings list to your LLM, ask for JSON back.
     // Return it directly — OpenPrefs validates it for you.
@@ -110,7 +116,7 @@ const resolver = {
 export const openPrefs = createOpenPrefs({ preferences: settings, adapter, resolver });
 ```
 
-Any model, any provider, self-hosted or API. A complete working implementation is in [`examples/typescript`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript) — around 60 lines with `fetch`, no SDK. Typical cost is a fraction of a cent per request on a small model.
+Any model, any provider, self-hosted or API. A complete working implementation is in [`examples/typescript`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript) — 307 lines with `fetch`, no SDK. Typical cost is a fraction of a cent per request on a small model.
 
 ### 4. Wire up a route and a text box
 
@@ -228,6 +234,6 @@ Full TypeScript types, ESM and CommonJS. See [`docs/architecture.md`](https://gi
 
 ## Status
 
-`0.1.0` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
+`0.1.0-beta.1` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
 
 MIT

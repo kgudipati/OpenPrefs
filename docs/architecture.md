@@ -52,6 +52,20 @@ all submitted changes were applied. `{ ok: false, failed: [...] }` names a non-e
 that failed, and submitted changes not named in `failed` are reported as applied. Missing,
 contradictory, or malformed acknowledgement data produces a conservative total failure.
 
+### TypeScript adapter return types
+
+When an adapter object is declared without a contextual type, TypeScript can widen `{ ok: true }` to
+`{ ok: boolean }`. The resulting error ends with the relevant literal mismatch:
+
+```text
+Type 'boolean' is not assignable to type 'true'.
+```
+
+Annotate the return type as `ApplyResult` (or `Promise<ApplyResult>` for an async method), or return
+`{ ok: true } as const`, to preserve the literal discriminant. `{ ok: true, failed: [] }` is also a
+valid success acknowledgement and applies correctly. Only `ok: true` with a non-empty `failed`
+array is contradictory and treated as a malformed result.
+
 ## Confirmation policy
 
 The implemented confirmation matrix is:
