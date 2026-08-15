@@ -247,14 +247,15 @@ Install the package, then paste this prompt into Claude Code, Codex, Cursor, or 
 
 ```text
 Read node_modules/openprefs/skills/openprefs-integrate/SKILL.md and follow it.
-Integrate OpenPrefs with this app's existing working settings implementation.
-Build the manifest, adapter, and createOpenPrefs setup. If this app already has
-model API access, implement a resolver using it; otherwise tell me what to provide.
+Integrate with this app's working settings; build its manifest, adapter, and createOpenPrefs setup.
+If this app has model API access, implement a resolver using it; otherwise tell me what to provide.
 Do not restructure, migrate, replace, or relocate the existing settings implementation.
 Bind to its current UI, getters, setters, stores, APIs, and persistence paths.
 Add a server-side route and a text input with a confirmation dialog to the existing settings page.
-Keep existing controls unchanged. Follow https://github.com/kgudipati/OpenPrefs/tree/main/examples/next for resolver, route, and UI patterns;
-handle every result status, show labels and before/after values, and pass the returned proposal unmodified to confirm.
+Use node_modules/openprefs/README.md as the primary reference for the route and dialog.
+Keep existing controls unchanged; show labels and before/after values in the confirmation dialog.
+Handle every result status and pass the returned proposal unmodified to confirm.
+For supplementary patterns only: https://github.com/kgudipati/OpenPrefs/tree/main/examples/next
 Produce the skill's report: what was exposed, what was excluded and why, and anything you could not trace.
 Run the relevant checks; report any pre-existing failures separately from ones you introduced.
 ```
