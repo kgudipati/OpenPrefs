@@ -27,7 +27,8 @@ keyword resolver suite, hosted-resolver tests, and CLI end-to-end test.
 
 ## Hosted resolver
 
-`llmResolver.ts` is a real HTTP resolver for OpenAI's Responses API and defaults to `gpt-5.6`.
+`llmResolver.ts` is a real HTTP resolver for OpenAI's Responses API and defaults to
+`gpt-5.6-luna`, the smallest tier capable of this constrained structured-extraction task.
 Set `OPENAI_API_KEY` to activate it; without that variable the default CLI remains deterministic.
 Override the model with `OPENPREFS_MODEL`. No provider SDK is installed because the example uses
 `fetch` directly.

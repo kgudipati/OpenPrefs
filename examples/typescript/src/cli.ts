@@ -12,7 +12,7 @@ function selectedResolver(): { readonly name: string; readonly resolver: Prefere
     modelOverride === undefined || modelOverride.length === 0 ? undefined : modelOverride;
   if (apiKey !== undefined && apiKey.length > 0) {
     return {
-      name: `OpenAI Responses API (${model ?? "gpt-5.6"})`,
+      name: `OpenAI Responses API (${model ?? "gpt-5.6-luna"})`,
       resolver: createOpenAIResolver({
         apiKey,
         ...(model === undefined ? {} : { model }),

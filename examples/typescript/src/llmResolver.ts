@@ -28,19 +28,22 @@ export interface ModelPreferenceContext {
 export interface OpenAIResolverOptions {
   /** Server-side OpenAI API key. Never expose this value to browser code. */
   readonly apiKey: string;
-  /** Responses API model id; defaults to the documented `gpt-5.6` model. */
+  /** Responses API model id; defaults to the documented `gpt-5.6-luna` model. */
   readonly model?: string;
   /** Alternate Responses-compatible endpoint, primarily for provider swaps. */
   readonly endpoint?: string;
 }
 
 const resolveResultSchema = {
-  anyOf: [
-    {
-      type: "object",
-      properties: {
-        status: { type: "string", const: "resolved" },
-        changes: {
+  type: "object",
+  properties: {
+    status: {
+      type: "string",
+      enum: ["resolved", "needs_clarification", "unsupported"],
+    },
+    changes: {
+      anyOf: [
+        {
           type: "array",
           minItems: 1,
           items: {
@@ -55,28 +58,15 @@ const resolveResultSchema = {
             additionalProperties: false,
           },
         },
-      },
-      required: ["status", "changes"],
-      additionalProperties: false,
+        { type: "null" },
+      ],
     },
-    {
-      type: "object",
-      properties: {
-        status: { type: "string", const: "needs_clarification" },
-        question: { type: "string" },
-      },
-      required: ["status", "question"],
-      additionalProperties: false,
+    question: {
+      anyOf: [{ type: "string" }, { type: "null" }],
     },
-    {
-      type: "object",
-      properties: {
-        status: { type: "string", const: "unsupported" },
-      },
-      required: ["status"],
-      additionalProperties: false,
-    },
-  ],
+  },
+  required: ["status", "changes", "question"],
+  additionalProperties: false,
 } as const;
 
 /**
@@ -170,7 +160,9 @@ function parseUntrustedResolution(text: string): ResolveResult {
  */
 export function createOpenAIResolver(options: OpenAIResolverOptions): PreferencesResolver {
   const endpoint = options.endpoint ?? "https://api.openai.com/v1/responses";
-  const model = options.model ?? "gpt-5.6";
+  // Preference resolution is constrained structured extraction, so the smallest capable model is
+  // the right default for an example developers will copy.
+  const model = options.model ?? "gpt-5.6-luna";
 
   return {
     async resolve(input): Promise<ResolveResult> {
@@ -189,6 +181,9 @@ export function createOpenAIResolver(options: OpenAIResolverOptions): Preference
               "Use current values for relative requests.",
               "Return needs_clarification when multiple meanings remain plausible.",
               "Return unsupported when the manifest cannot express the request.",
+              "For resolved, return changes and set question to null.",
+              "For needs_clarification, return a question and set changes to null.",
+              "For unsupported, set both changes and question to null.",
             ].join(" "),
             input: JSON.stringify({
               request: input.text,
