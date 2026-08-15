@@ -36,6 +36,7 @@ export const synonymCases: readonly EvalCase[] = [
     id: "synonym-005",
     class: "synonym",
     input: "Show message counters.",
+    startingState: { notificationBadges: false },
     expected: { status: "applied", changes: [{ id: "notificationBadges", value: true }] },
   },
 ];

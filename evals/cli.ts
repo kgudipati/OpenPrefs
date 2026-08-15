@@ -33,7 +33,7 @@ function outputPath(selection: ResolverSelection, model?: string): string {
 }
 
 async function main(): Promise<void> {
-  const suiteErrors = validateCaseSuite(evalCases);
+  const suiteErrors = validateCaseSuite(evalCases, startingState);
   if (suiteErrors.length > 0) {
     throw new Error(`Invalid eval suite:\n${suiteErrors.join("\n")}`);
   }
