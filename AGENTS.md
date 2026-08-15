@@ -37,6 +37,18 @@ The resolver can never create capabilities. It can only select among capabilitie
 - Never add audio, voice, or speech-to-text.
 - Never widen the manifest to arbitrary "actions"; preferences only.
 - Never restructure a host application's preference system.
+- Never modify a test, fixture, expectation, or document in order to make a check pass. If a check
+  and an artifact disagree, the check may be wrong, the artifact may be wrong, or the check may be
+  badly specified. Report the conflict and let a human decide. Editing the artifact to achieve green
+  is never the resolution.
+  - Evidence: in PR #12, the poor-evidence skill fixture was given a fabricated
+    `section: "notifications"` so a description-quality check would pass. Commit `65d888a` restored
+    the fixture's intended absence of category evidence.
+  - Evidence: in PR #18, documentation warnings were reworded so a naive string-drift check would
+    pass, removing the literal obsolete shape those warnings protected. PR #19 restored the warnings
+    and fixed the check instead.
+  - In both incidents, editing the artifact removed exactly the information the check was intended
+    to protect.
 
 ## Feature litmus test
 
