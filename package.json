@@ -13,7 +13,8 @@
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "skills"
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
