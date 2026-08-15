@@ -7,14 +7,15 @@ import { settingsStore } from "./settings.js";
 
 function selectedResolver(): { readonly name: string; readonly resolver: PreferencesResolver } {
   const apiKey = process.env.OPENAI_API_KEY;
+  const modelOverride = process.env.OPENPREFS_MODEL;
+  const model =
+    modelOverride === undefined || modelOverride.length === 0 ? undefined : modelOverride;
   if (apiKey !== undefined && apiKey.length > 0) {
     return {
-      name: `OpenAI Responses API (${process.env.OPENPREFS_MODEL ?? "gpt-5.6"})`,
+      name: `OpenAI Responses API (${model ?? "gpt-5.6"})`,
       resolver: createOpenAIResolver({
         apiKey,
-        ...(process.env.OPENPREFS_MODEL === undefined
-          ? {}
-          : { model: process.env.OPENPREFS_MODEL }),
+        ...(model === undefined ? {} : { model }),
       }),
     };
   }
