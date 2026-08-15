@@ -65,7 +65,7 @@ async function findForbiddenDocumentExamples(packageRoot) {
     const contents = await readFile(documentPath, "utf8");
     for (const example of findLegacySuccessExamples(contents)) {
       matches.push(
-        `${relative(packageRoot, documentPath)}:${example.line} contains legacy success syntax in a fenced code block`,
+        `${relative(packageRoot, documentPath)}:${example.line} contains legacy success syntax in a Markdown code block`,
       );
     }
   }
@@ -130,7 +130,7 @@ try {
   const forbiddenDocumentMatches = await findForbiddenDocumentExamples(installedPackage);
   if (forbiddenDocumentMatches.length > 0) {
     throw new Error(
-      `Forbidden fenced code examples found in shipped documents:\n${forbiddenDocumentMatches.join("\n")}`,
+      `Forbidden code examples found in shipped documents:\n${forbiddenDocumentMatches.join("\n")}`,
     );
   }
 

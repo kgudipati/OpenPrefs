@@ -16,11 +16,17 @@ function closesFence(line, fence) {
   return marker[0] === fence.character && marker.length >= fence.length;
 }
 
+function indentedCodeLine(line) {
+  if (line.startsWith("    ")) return line.slice(4);
+  if (line.startsWith("\t")) return line.slice(1);
+  return undefined;
+}
+
 /**
  * Finds copyable Markdown examples that contain the obsolete adapter success property.
  *
- * Prose and inline code are intentionally ignored. Backtick and tilde fenced blocks are scanned,
- * including an unclosed fence that extends to the end of the document.
+ * Prose and inline code are intentionally ignored. Backtick fences, tilde fences, and indented code
+ * blocks are scanned, including an unclosed fence that extends to the end of the document.
  *
  * @param {string} markdown Markdown source to inspect.
  * @returns {readonly { line: number }[]} Opening line numbers for matching fenced blocks.
@@ -28,28 +34,57 @@ function closesFence(line, fence) {
 export function findLegacySuccessExamples(markdown) {
   const matches = [];
   const lines = markdown.split(/\r?\n/);
-  let active;
+  let activeFence;
+  let activeIndentedBlock;
 
-  function inspectActiveFence() {
-    if (active !== undefined && legacySuccessProperty.test(active.lines.join("\n"))) {
-      matches.push({ line: active.line });
+  function inspectBlock(block) {
+    if (block !== undefined && legacySuccessProperty.test(block.lines.join("\n"))) {
+      matches.push({ line: block.line });
+    }
+  }
+
+  function startBlock(line, index) {
+    const fence = openingFence(line);
+    if (fence !== undefined) {
+      activeFence = { ...fence, line: index + 1, lines: [] };
+      return;
+    }
+
+    const code = indentedCodeLine(line);
+    if (code !== undefined) {
+      activeIndentedBlock = { line: index + 1, lines: [code] };
     }
   }
 
   for (const [index, line] of lines.entries()) {
-    if (active === undefined) {
-      const fence = openingFence(line);
-      if (fence !== undefined) {
-        active = { ...fence, line: index + 1, lines: [] };
+    if (activeFence !== undefined) {
+      if (closesFence(line, activeFence)) {
+        inspectBlock(activeFence);
+        activeFence = undefined;
+      } else {
+        activeFence.lines.push(line);
       }
-    } else if (closesFence(line, active)) {
-      inspectActiveFence();
-      active = undefined;
+      continue;
+    }
+
+    if (activeIndentedBlock === undefined) {
+      startBlock(line, index);
+      continue;
+    }
+
+    const code = indentedCodeLine(line);
+    if (code !== undefined) {
+      activeIndentedBlock.lines.push(code);
+    } else if (line.trim().length === 0) {
+      activeIndentedBlock.lines.push("");
     } else {
-      active.lines.push(line);
+      inspectBlock(activeIndentedBlock);
+      activeIndentedBlock = undefined;
+      startBlock(line, index);
     }
   }
 
-  inspectActiveFence();
+  inspectBlock(activeFence);
+  inspectBlock(activeIndentedBlock);
   return matches;
 }

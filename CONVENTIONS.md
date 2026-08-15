@@ -36,8 +36,8 @@ Inline comments explain why the code exists or why a non-obvious choice is safe;
 ## Documentation examples
 
 Obsolete API shapes may be named in prose and inline code when documenting why they are invalid.
-They must never appear in fenced code examples, because fenced blocks are what developers copy into
-their integrations.
+They must never appear in Markdown code examples, whether fenced or indented, because code blocks
+are what developers copy into their integrations.
 
 ## Code style
 
