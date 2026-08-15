@@ -38,7 +38,7 @@ The model never touches your app. It proposes; OpenPrefs verifies against a list
 ## Install
 
 > **Temporary beta:** OpenPrefs is not yet on npm. Download the beta tarball from GitHub Releases,
-> then install it with `npm install ./openprefs-0.1.0-beta.1.tgz`.
+> then install it with `npm install ./openprefs-0.1.0-beta.2.tgz`.
 
 Zero dependencies. Works in Node, the browser, and React Native.
 
@@ -235,13 +235,29 @@ The model can only choose among the settings you explicitly listed. It can't inv
 
 ## Already have 40 settings?
 
-The package ships a skill for coding agents. Point yours at:
+The package ships a skill for coding agents that traces your existing settings without changing how
+your app works.
 
-```
-node_modules/openprefs/skills/openprefs-integrate/SKILL.md
+### Give this to your coding agent
+
+Install the package, then paste this prompt into Claude Code, Codex, Cursor, or any capable coding agent.
+
+> **Prerequisite:** Your app must already have a working settings implementation. OpenPrefs binds
+> to what exists; it does not create a settings system.
+
+```text
+Read node_modules/openprefs/skills/openprefs-integrate/SKILL.md and follow it.
+Integrate OpenPrefs with this app's existing working settings implementation.
+Build the manifest, adapter, and createOpenPrefs setup; leave resolver injection to me.
+Do not restructure, migrate, replace, or relocate the existing settings implementation.
+Bind to its current UI, getters, setters, stores, APIs, and persistence paths.
+Produce the skill's report: what was exposed, what was excluded and why, and anything you could not trace.
+I must supply the resolver; point me to https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript.
+Run the relevant checks and report the results.
 ```
 
-It traces your existing settings — UI labels, stores, API calls, storage — and generates the settings list and adapter for you, without changing how your app works. Settings it can't confidently describe are left commented out with a note, so you fill in the meaning rather than the agent guessing. Then you review what got exposed before shipping.
+The agent generates the integration files and report; review what it exposed before shipping.
+Anything it cannot confidently describe stays commented out for you to complete.
 
 You can also just write the twenty lines yourself. The skill is optional.
 
@@ -265,6 +281,6 @@ Full TypeScript types, ESM and CommonJS. See [`docs/architecture.md`](https://gi
 
 ## Status
 
-`0.1.0-beta.1` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
+`0.1.0-beta.2` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
 
 MIT
