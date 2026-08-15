@@ -50,17 +50,19 @@ binding, documenting the missing evidence, and leaving it inactive is the correc
 Read [references/classification-guide.md](references/classification-guide.md) whenever a candidate
 is ambiguous. Read [references/description-guide.md](references/description-guide.md) before
 authoring any manifest descriptions. Read [references/adapter-patterns.md](references/adapter-patterns.md)
-before generating adapter code; choose or combine only the patterns matching the host.
+before generating adapter code; choose or combine only the patterns matching the host. Always read
+[the implemented architecture](../../docs/architecture.md) and treat it as authoritative over older
+product-spec examples.
 
 ## Workflow
 
 ### 1. Establish constraints and integration locations
 
 Read the repository's agent instructions, contribution conventions, package configuration, existing
-OpenPrefs integration, and `docs/architecture.md` if present. Treat that architecture document as
-authoritative over older product-spec examples. Identify the host's language, module boundaries,
-test commands, and existing preference ownership. Do not add a dependency, framework, service,
-storage layer, UI, resolver SDK, or abstraction unless the developer explicitly asks for it.
+OpenPrefs integration, and [the implemented architecture](../../docs/architecture.md). Identify the
+host's language, module boundaries, test commands, and existing preference ownership. Do not add a
+dependency, framework, service, storage layer, UI, resolver SDK, or abstraction unless the developer
+explicitly asks for it.
 
 Manual integration remains first-class. A developer may write the manifest and adapter by hand;
 this skill is optional assistance, not a required build tool.
@@ -94,6 +96,14 @@ Call a candidate traced only when the existing mutation route is known. Never by
 write its backing store directly when the application normally uses validation, side effects, or an
 API. If no setter can be established, generate no adapter mutation and report the untraced candidate.
 
+Treat mechanically dead settings as **UNTRACED**, not Tier 2. A settings UI whose save path does not
+reach a working setter is untraced even when its labels provide excellent semantic evidence. The
+same applies to a fully built settings section the application never mounts. Tier 2 means the
+preference mechanics are traced but its meaning is unknown; it does not describe incomplete host
+wiring. List mechanically dead candidates in the report with the specific reason, such as “save
+handler never calls a setter” or “settings section is never mounted.” Finding these defects is useful
+integration output for the developer.
+
 A preference can be write-only or expensive to read. Adapter `read` is optional and may omit it;
 do not invent a read path or restructure the host to create one.
 
@@ -113,11 +123,23 @@ boundary uncertain, do not activate it.
 
 ### 5. Author precise manifest entries
 
-Use stable ids that map clearly to the host preference. Preserve host types, legal values, inclusive
-numeric bounds, and defaults supported by evidence. A value assigned by the application's initialized
-state is evidence of a default and may be recorded. Do not infer a default from a value the code
-never sets, or mistake an observed current value for a default. Do not make a constraint broader
-than the existing setter accepts.
+Use stable ids that map clearly to the host preference. For a nested host setting, use dot-separated
+ids such as `notifications.categories.failures.browser`. Each segment must match
+`/^[a-zA-Z][a-zA-Z0-9]*$/`. Mirror the host's own nesting rather than inventing a flattened id. For
+example, a host value at `settings.notifications.categories.failures.browser` should use the id
+`notifications.categories.failures.browser`, not `failureBrowserNotifications`. See the
+[description guide](references/description-guide.md#mirror-nested-host-structure-in-ids) for a worked
+manifest and adapter example.
+
+Preserve host types, legal values, inclusive numeric bounds, and defaults supported by evidence. A
+value assigned by the application's initialized state is evidence of a default and may be recorded.
+Do not infer a default from a value the code never sets, or mistake an observed current value for a
+default. Do not make a constraint broader than the existing setter accepts.
+
+OpenPrefs does not support array-valued preferences. Do not flatten an array into multiple invented
+preferences or serialize it into a string. Omit it from the manifest and report it separately as an
+unsupported value shape so the developer can see which genuine preferences the current contract
+cannot expose.
 
 Descriptions are the dominant resolver input. State what the preference controls in user-facing
 terms. Use this two-part procedure for every description:
@@ -180,16 +202,25 @@ ordered enums in natural order, such as `['small', 'medium', 'large']`, never al
 what makes “make the text bigger” resolvable. Preserve non-ordinal host values without inventing an
 order, and state the choices in the description when evidence supports their meaning.
 
+When a string setter validates against a runtime registry rather than a fixed list, record the
+tradeoff explicitly. A generated enum can go stale as the registry changes; a bare string lets a
+resolver propose an invalid value that only the adapter can reject. Prefer generating the manifest
+enum from the registry's current contents. State in the integration report that the enum is a
+snapshot and must be regenerated when the registry changes. Regardless of the enum, the adapter
+must check the live registry and reject unknown values before calling the setter. The manifest is a
+resolver constraint, not a replacement for host validation.
+
 Mark privacy, security, data-sharing, and payment-adjacent preferences with
 `openPrefs: { sensitive: true }`. Add `confirmation: "required"` only when a change is irreversible
 or carries consequences beyond the preference itself, such as deletion, billing, durable enrollment,
 granting third-party access, or disabling a security control. A reversible privacy or visibility
 preference is sensitive only; it does not require the unconditional floor.
 
-Consult `docs/architecture.md`: `sensitive` is a classification whose effect depends on the global
-confirmation mode, while `confirmation: "required"` is an unconditional floor. Under the default
-policy every change confirms anyway, so `confirmation: "required"` matters only when a developer has
-deliberately selected global mode `"never"`. Reserve it for changes that must still confirm then.
+Consult [the implemented architecture](../../docs/architecture.md): `sensitive` is a classification
+whose effect depends on the global confirmation mode, while `confirmation: "required"` is an
+unconditional floor. Under the default policy every change confirms anyway, so
+`confirmation: "required"` matters only when a developer has deliberately selected global mode
+`"never"`. Reserve it for changes that must still confirm then.
 
 For every Tier 2 candidate, emit a commented block at the intended manifest location:
 
@@ -257,9 +288,10 @@ without `default`, an unhandled id may be silently reported as applied.
 
 Return `{ ok: true }` only when every submitted change succeeded. `{ success: true }` and
 `{ failed: [] }` are **not valid success shapes**. Return `{ ok: false, failed }` with a non-empty
-failure list for rejected or unhandled changes. `docs/architecture.md` is authoritative over the
-older product specification on this contract. Catch independent per-change failures when the host
-can report them accurately; do not add rollback or transactions the host does not already provide.
+failure list for rejected or unhandled changes. [The implemented architecture](../../docs/architecture.md)
+is authoritative over the older product specification on this contract. Catch independent
+per-change failures when the host can report them accurately; do not add rollback or transactions
+the host does not already provide.
 
 ### 7. Keep resolver ownership with the developer
 
@@ -286,7 +318,8 @@ Produce a developer-facing report containing:
 3. Every Tier 2 entry with the evidence found, the missing semantic evidence, and its completed
    adapter binding.
 4. Every Tier 3 exclusion with the reason it is internal configuration.
-5. Every candidate that could not be traced to a setter or persistence path.
+5. Every candidate that could not be traced to a working setter or persistence path, including
+   mechanically dead UI or unmounted settings sections, with the specific reason it is untraced.
 6. Sensitive and confirmation-required choices, unresolved conflicts, verification results, and
    the resolver the developer still needs to supply.
 

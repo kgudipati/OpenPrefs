@@ -1,8 +1,9 @@
 # Adapter patterns
 
-These patterns are derived from the working Phase 5 host applications under `tests/apps/` and
-`tests/adapters/`. Adapt them to the host's existing functions and types; do not introduce a common
-settings architecture to make an adapter look cleaner.
+These patterns are derived from OpenPrefs' Phase 5 host-application integration tests, which are not
+part of the published package. Adapt them to the host's existing functions and types; do not
+introduce a common settings architecture to make an adapter look cleaner. Follow
+[the implemented architecture](../../../docs/architecture.md) for the adapter result contract.
 
 Every `apply` switch includes a `default` failure, and complete success is always `{ ok: true }`.
 

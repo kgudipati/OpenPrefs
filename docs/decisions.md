@@ -2,6 +2,22 @@
 
 Entries are ordered newest first.
 
+## 2026-08-15 — Keep array-valued preferences unsupported
+
+- **Status:** Accepted; confirms product specification section 9.
+- **Context:** The first real-repository integration found three user-setting families whose values
+  are arrays: command allowlists, trusted origins, and filesystem paths. OpenPrefs currently exposes
+  only boolean, string, and number preference values. Supporting arrays would require decisions
+  about whole-value replacement versus element operations, validation, resolver proposal shape,
+  confirmation previews, and adapter behavior.
+- **Decision:** Arrays remain unsupported. The integration skill must exclude array-valued settings
+  from generated manifests and report the limitation rather than flattening them, serializing them
+  into strings, or widening the runtime contract.
+- **Rationale:** One integration is useful evidence but not enough to define a portable array
+  contract. Premature support would risk model-generated structural changes and host-specific
+  semantics crossing the validated preference boundary.
+- **Revisit when:** A second independent integration is blocked by array-valued settings.
+
 ## 2026-08-14 — Defer a contradictory-request result status
 
 - **Status:** Deferred for v0.x.
