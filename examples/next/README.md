@@ -4,16 +4,18 @@ This deliberately small settings page demonstrates where OpenPrefs fits in an Ap
 application. Natural language is the prominent path, while theme, layout, notifications,
 analytics, and profile controls remain available conventionally.
 
-The browser sends text to `app/api/preferences/route.ts`. That route imports the resolver from a
-`server-only` module, so a hosted resolver's API key never enters the client bundle. The included
-resolver is deterministic so the app works without a key. Replace `serverResolver` in
-`lib/openPrefs.ts` with the fetch-based resolver from the TypeScript example—or any implementation
-of `PreferencesResolver`—to use another provider.
+The browser sends text to `app/api/preferences/request/route.ts` and sends an approved proposal to
+the distinct `app/api/preferences/confirm/route.ts` confirmation endpoint. The request route imports
+the resolver from a `server-only` module, so a hosted resolver's API key never enters the client
+bundle. The included resolver is deterministic so the app works without a key. Replace
+`serverResolver` in `lib/openPrefs.ts` with the fetch-based resolver from the TypeScript example—or
+any implementation of `PreferencesResolver`—to use another provider.
 
 The route returns `ConfirmationRequiredResult` unchanged. The page renders its `preview` as
 before/after rows, and only sends the proposal to `openPrefs.confirm()` after explicit approval.
-Both the conventional-controls route and the OpenPrefs adapter call `updateSettings()`, proving
-that natural language uses the application's existing mutation path.
+The conventional controls continue to use `app/api/preferences/route.ts`. Both that route and the
+OpenPrefs adapter call `updateSettings()`, proving that natural language uses the application's
+existing mutation path.
 
 ## Build your own UI
 

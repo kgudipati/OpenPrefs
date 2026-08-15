@@ -260,7 +260,11 @@ common with a Next.js App Router route handler, use this preference order:
 
 1. Import the existing merge and validation functions in-process. If necessary, add only an
    `export` keyword to those functions. That is not a migration: it changes no behavior, call site,
-   or data.
+   or data. In a Next.js App Router application, importing a helper from a route module also pulls
+   that framework-owned route module and its metadata into library code. This is acceptable adapter
+   glue and remains preferable to duplicating the helper. A developer may later extract the shared
+   helper into a `lib` module, but the skill must not perform that relocation: deciding where host
+   code lives belongs to the developer.
 2. If the route performs authentication, session handling, or side effects the adapter cannot
    reproduce, call the existing route with `fetch` instead so those behaviors remain in the path.
 3. **NEVER copy the route's merge or validation logic into the adapter.** Two copies drift silently,
@@ -344,7 +348,9 @@ Produce a developer-facing report containing:
 4. Every Tier 3 exclusion with the reason it is internal configuration.
 5. Every candidate that could not be traced to a working setter or persistence path, including
    mechanically dead UI or unmounted settings sections, with the specific reason it is untraced.
-6. Sensitive and confirmation-required choices, unresolved conflicts, verification results, and
+6. Every mounted settings section found to have no working save path, listed explicitly by section
+   name. State explicitly when no such mounted section was found.
+7. Sensitive and confirmation-required choices, unresolved conflicts, verification results, and
    the resolver the developer still needs to supply.
 
 Before shipping, require the developer to review the semantic boundary explicitly. The goal is not
