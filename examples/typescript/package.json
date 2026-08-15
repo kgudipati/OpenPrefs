@@ -1,0 +1,22 @@
+{
+  "name": "openprefs-typescript-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit",
+    "demo": "tsx src/cli.ts",
+    "demo:hosted": "tsx src/hostedCli.ts",
+    "test": "vitest run",
+    "verify": "npm run build && npm run test"
+  },
+  "dependencies": {
+    "openprefs": "file:../.."
+  },
+  "devDependencies": {
+    "@types/node": "26.2.0",
+    "tsx": "4.23.12",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
+  }
+}

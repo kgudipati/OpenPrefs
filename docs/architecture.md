@@ -17,6 +17,14 @@ boundary.
 - **Adapter:** Invokes the host application's existing read and mutation operations. The host retains
   ownership of settings architecture, persistence, and execution behavior.
 
+## Manifest enum order
+
+String enum values are stored in declaration order. Resolvers MAY treat position as ordinal when a
+relative request and the current value make that interpretation unambiguous; no additional manifest
+field is required. Live Phase 6 verification demonstrated this convention: with
+`enum: ["small", "medium", "large"]` and current value `"medium"`, “make the text bigger” resolved
+to `"large"` using declaration order alone.
+
 ## Request lifecycle and security boundary
 
 Before resolution, OpenPrefs calls the optional adapter `read(ids)` with every manifest id. A read
@@ -30,6 +38,14 @@ user input -> resolver -> UNTRUSTED proposal -> manifest whitelist -> type valid
 Policy evaluates the request as a whole. A request awaiting confirmation returns a data-only
 proposal; `confirm(proposal)` revalidates and reevaluates that proposal before execution. Calling
 `confirm()` is the host's assertion that the user approved that exact proposal.
+
+## Resolver output boundary
+
+`ResolveResult` is an authoring convenience, not a runtime guarantee. Core treats every resolver
+output as `unknown` regardless of its declared TypeScript type, then inspects and validates it
+against the manifest before policy or execution. Resolvers that construct changes dynamically
+should use the loose `PreferenceChange` shape rather than claim the manifest-derived
+`PreferenceChangeFor` union before OpenPrefs has validated the generated ids and values.
 
 At execution, the adapter must return an explicit acknowledgement. `{ ok: true }` acknowledges that
 all submitted changes were applied. `{ ok: false, failed: [...] }` names a non-empty set of changes

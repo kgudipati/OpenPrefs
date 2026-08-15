@@ -2,6 +2,24 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Defer an exported result JSON Schema
+
+- **Decision:** Keep the hosted example's result schema local instead of exporting an OpenPrefs JSON
+  Schema for resolver results.
+- **Rationale:** One hand-written provider schema does not yet justify a public schema artifact,
+  versioning contract, or generation API in core.
+- **Revisit when:** A second consumer, such as the Phase 7 evaluation harness or Phase 8 skill,
+  needs to hand-write the same schema.
+
+## 2026-08-14 — Defer clarification continuation
+
+- **Decision:** A `needs_clarification` result carries only a focused question. OpenPrefs does not
+  preserve already-resolved clauses, issue a continuation token, or own multi-turn resolver state.
+- **Rationale:** Continuation state would expand the resolver and host contracts before evidence
+  shows that losing resolved work from multi-clause requests is a real user problem.
+- **Revisit when:** Real requests demonstrate that clarification of one ambiguous clause regularly
+  causes useful resolved clauses to be lost or repeated.
+
 ## 2026-08-14 — Require explicit adapter acknowledgement
 
 - **Decision:** `ApplyResult` requires an affirmative `ok` discriminator. `{ ok: true }` acknowledges complete success. `{ ok: false, failed: [...] }` reports a non-empty set of per-change failures. Missing, non-boolean, contradictory, or malformed acknowledgement data is a total failure.
