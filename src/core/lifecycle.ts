@@ -194,6 +194,7 @@ export async function runProposal<Manifest extends PreferencesManifest>(
       policy: input.policy,
       changes: validation.changes,
       rejections: validation.rejections,
+      ...(input.current === undefined ? {} : { current: input.current }),
     });
 
     if (decision.outcome === "already_satisfied") {

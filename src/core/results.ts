@@ -79,15 +79,16 @@ export interface NeedsClarificationResult {
 }
 
 /**
- * Reports a clean empty proposal: for a natural-language request, the resolver proposed no
- * changes.
+ * Reports that OpenPrefs found nothing to change: either the resolver proposed no changes, or
+ * every validated proposed value strictly matched the corresponding current value supplied by the
+ * adapter read operation.
  *
- * This status does not assert that OpenPrefs verified the host's current preference state. Hosts
- * should present it as informational and avoid claiming that OpenPrefs read and confirmed every
- * requested setting.
+ * This status does not assert that OpenPrefs independently verified the host's state. It relies on
+ * the resolver proposal and, for no-op detection, the optional snapshot returned by `read()`.
+ * Hosts should present it as informational without claiming broader verification.
  */
 export interface AlreadySatisfiedResult {
-  /** Discriminates a proposal containing zero validated changes and zero validation rejections. */
+  /** Discriminates a proposal for which OpenPrefs found no preference value to change. */
   readonly status: "already_satisfied";
 }
 

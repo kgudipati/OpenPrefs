@@ -95,6 +95,36 @@ describe("the full-pipeline eval runner", () => {
     expect(report.cases[0]?.stateMatchesExpectation).toBe(true);
   });
 
+  it("scores an exact already_satisfied proposal as successful intent fulfillment", async () => {
+    const cases: readonly EvalCase[] = [
+      {
+        id: "no-op-001",
+        class: "direct",
+        input: "keep the light theme",
+        expected: { status: "applied", changes: [{ id: "theme", value: "light" }] },
+      },
+    ];
+
+    const report = await runEvalSuite({
+      resolver: resolverFor({
+        status: "resolved",
+        changes: [{ id: "theme", value: "light" }],
+      }),
+      resolverName: "already-satisfied",
+      manifest: preferences,
+      startingState: { theme: "light", analytics: false },
+      cases,
+      policy: { confirmation: "never" },
+    });
+
+    expect(report.resolverAccuracy).toMatchObject({ passed: 1, clarified: 0, failed: 0 });
+    expect(report.cases[0]?.actual).toMatchObject({
+      status: "already_satisfied",
+      changes: [{ id: "theme", value: "light" }],
+      appliedChanges: [],
+    });
+  });
+
   it("exposes a validator rejection instead of scoring an invented preference as unsupported", async () => {
     const cases: readonly EvalCase[] = [
       {

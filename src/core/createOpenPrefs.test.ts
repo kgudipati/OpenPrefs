@@ -262,6 +262,130 @@ describe("createOpenPrefs", () => {
     expect(apply).not.toHaveBeenCalled();
   });
 
+  it("returns already_satisfied when every proposed change matches current state", async () => {
+    const adapter = new StoreAdapter({ theme: "dark", notifications: false, volume: 0 });
+    const openPrefs = openPrefsFor({
+      adapter,
+      resolver: new ScriptedResolver(
+        resolved(
+          { id: "theme", value: "dark" },
+          { id: "notifications", value: false },
+          { id: "volume", value: 0 },
+        ),
+      ),
+    });
+
+    await expect(openPrefs.request("Keep these settings as they are")).resolves.toEqual({
+      status: "already_satisfied",
+    });
+    expect(adapter.readCalls).toEqual([preferences.ids()]);
+    expect(adapter.applyCalls).toHaveLength(0);
+  });
+
+  it("returns already_satisfied for a single redundant change", async () => {
+    const adapter = new StoreAdapter({ notifications: false });
+    const openPrefs = openPrefsFor({
+      adapter,
+      resolver: new ScriptedResolver(resolved({ id: "notifications", value: false })),
+    });
+
+    await expect(openPrefs.request("Turn off notifications")).resolves.toEqual({
+      status: "already_satisfied",
+    });
+    expect(adapter.applyCalls).toHaveLength(0);
+  });
+
+  it("preserves every change when only part of a proposal is redundant", async () => {
+    const adapter = new StoreAdapter({ theme: "dark", volume: 3 });
+    const changes: readonly PreferenceChange[] = [
+      { id: "theme", value: "dark" },
+      { id: "volume", value: 5 },
+    ];
+    const openPrefs = openPrefsFor({
+      adapter,
+      resolver: new ScriptedResolver(resolved(...changes)),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Keep dark mode and raise the volume")).resolves.toEqual({
+      status: "applied",
+      applied: changes,
+    });
+    expect(adapter.applyCalls).toEqual([changes]);
+  });
+
+  it("proceeds when matching current values are unavailable without adapter read", async () => {
+    const hostState: Record<string, unknown> = { theme: "dark" };
+    const changes: readonly PreferenceChange[] = [{ id: "theme", value: "dark" }];
+    const apply = vi.fn(async (submitted: readonly PreferenceChange[]): Promise<ApplyResult> => {
+      for (const { id, value } of submitted) {
+        hostState[id] = value;
+      }
+      return { ok: true };
+    });
+    const openPrefs = openPrefsFor({
+      adapter: { apply },
+      resolver: new ScriptedResolver(resolved(...changes)),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Use dark mode")).resolves.toEqual({
+      status: "applied",
+      applied: changes,
+    });
+    expect(apply).toHaveBeenCalledWith(changes);
+    expect(hostState).toEqual({ theme: "dark" });
+  });
+
+  it("proceeds when adapter read omits the proposed preference ids", async () => {
+    const hostState: Record<string, unknown> = { notifications: false };
+    const changes: readonly PreferenceChange[] = [{ id: "notifications", value: false }];
+    const apply = vi.fn(async (submitted: readonly PreferenceChange[]): Promise<ApplyResult> => {
+      for (const { id, value } of submitted) {
+        hostState[id] = value;
+      }
+      return { ok: true };
+    });
+    const openPrefs = openPrefsFor({
+      adapter: { read: async () => ({}), apply },
+      resolver: new ScriptedResolver(resolved(...changes)),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Turn off notifications")).resolves.toEqual({
+      status: "applied",
+      applied: changes,
+    });
+    expect(apply).toHaveBeenCalledWith(changes);
+    expect(hostState).toEqual({ notifications: false });
+  });
+
+  it("an unobserved change cannot be assumed redundant", async () => {
+    const hostState: Record<string, unknown> = { theme: "dark", volume: 3 };
+    const changes: readonly PreferenceChange[] = [
+      { id: "theme", value: "dark" },
+      { id: "volume", value: 3 },
+    ];
+    const apply = vi.fn(async (submitted: readonly PreferenceChange[]): Promise<ApplyResult> => {
+      for (const { id, value } of submitted) {
+        hostState[id] = value;
+      }
+      return { ok: true };
+    });
+    const openPrefs = openPrefsFor({
+      adapter: { read: async () => ({ theme: "dark" }), apply },
+      resolver: new ScriptedResolver(resolved(...changes)),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Keep dark mode and volume unchanged")).resolves.toEqual({
+      status: "applied",
+      applied: changes,
+    });
+    expect(apply.mock.calls).toEqual([[changes]]);
+    expect(hostState).toEqual({ theme: "dark", volume: 3 });
+  });
+
   it("rejects a hallucinated preference id and never calls the adapter", async () => {
     const apply = successfulApply();
     const openPrefs = openPrefsFor({

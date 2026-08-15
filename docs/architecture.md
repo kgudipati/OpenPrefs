@@ -47,22 +47,34 @@ Policy evaluates the request as a whole. A request awaiting confirmation returns
 proposal; `confirm(proposal)` revalidates and reevaluates that proposal before execution. Calling
 `confirm()` is the host's assertion that the user approved that exact proposal.
 
-## Empty proposals and result semantics
+## Already-satisfied result semantics
 
 After a successful `resolved` resolver result crosses validation, policy returns
-`already_satisfied` exactly when validation produced **zero changes and zero rejections**. The
-corresponding lifecycle result is `{ status: "already_satisfied" }`, and the adapter is not called.
-This is a policy outcome inside the existing lifecycle and does not change the security boundary.
+`already_satisfied` under either of two exact conditions:
 
-The status records only that the resolver proposed no changes. OpenPrefs cannot infer from an empty
-proposal that it independently read and verified every relevant host value, so hosts should treat
-the outcome as informational without overstating that guarantee.
+1. Validation produced **zero changes and zero rejections**.
+2. Validation produced one or more changes, `read()` supplied a current value for every changed id,
+   and every proposed primitive value is strictly equal (`===`) to its current value.
+
+The corresponding lifecycle result is `{ status: "already_satisfied" }`, and adapter `apply()` is
+not called. This is a policy outcome inside the existing lifecycle and does not change the security
+boundary.
+
+The status records that OpenPrefs found nothing to change from the resolver proposal and optional
+adapter snapshot. It does not mean OpenPrefs independently verified the host's state, so hosts
+should treat the outcome as informational without overstating that guarantee.
+
+No-op detection is all-or-nothing. If even one proposed change differs from current state, or if
+`read()` is unavailable or omits any proposed id, policy proceeds normally with the complete
+validated change set in its original order. OpenPrefs never filters redundant entries from a mixed
+proposal because writes may have host-owned side effects regardless of value.
 
 The nearby outcomes remain semantically distinct:
 
 | Condition | Result | Meaning |
 | --- | --- | --- |
 | Zero validated changes and zero rejections | `already_satisfied` | The resolver proposed no changes. |
+| Every validated change strictly equals its available current value | `already_satisfied` | The proposal contains only known no-op writes. |
 | One or more validation rejections, including when zero changes survive | `rejected / proposal_rejected` | Something in the proposal was refused. |
 | Resolver returns `unsupported` | `unsupported` | The manifest cannot express the request; the app exposes no matching setting. |
 

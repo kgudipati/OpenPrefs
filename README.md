@@ -158,7 +158,7 @@ const result = await fetch("/api/preferences/request", {
 
 switch (result.status) {
   case "already_satisfied":
-    // The resolver proposed no changes; this does not independently verify host state.
+    // OpenPrefs found nothing to change; this does not independently verify host state.
     setMessage("No settings changes were needed.");
     break;
   case "confirmation_required":

@@ -22,10 +22,11 @@ export type PolicyRejectionReason = "proposal_rejected" | "unknown_preference" |
 export type PolicyDecision =
   | {
       /**
-       * Recognizes a clean empty proposal: validation produced zero changes and zero rejections.
+       * Recognizes that validation produced zero changes and zero rejections, or that every
+       * validated change strictly equals the available current value for its preference id.
        *
-       * This outcome records only that no changes were proposed. It does not verify the host's
-       * current preference state.
+       * This outcome records that OpenPrefs found nothing to change from the proposal and optional
+       * read snapshot. It does not independently verify the host's current preference state.
        */
       readonly outcome: "already_satisfied";
     }
