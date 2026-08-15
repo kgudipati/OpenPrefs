@@ -254,13 +254,13 @@ Do not restructure, migrate, replace, or relocate the existing settings implemen
 Bind to its current UI, getters, setters, stores, APIs, and persistence paths.
 Produce the skill's report: what was exposed, what was excluded and why, and anything you could not trace.
 For resolver patterns see https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript
-Run the relevant checks and report the results.
+Run the relevant checks; report any pre-existing failures separately from ones you introduced.
 ```
 
 The agent generates the integration files and report; review what it exposed before shipping.
 Anything it cannot confidently describe stays commented out for you to complete.
 
-You can also just write the twenty lines yourself. The skill is optional.
+You can also write the manifest and adapter by hand — the skill is optional.
 
 ---
 
