@@ -50,9 +50,12 @@ any regression to 21 or fewer fails. The hosted run used 48,441 input tokens, ze
 
 The keyword resolver scores 0/5 on `multiSetting` because the manifest expresses no relationship
 between preferences. “Only notify me for DMs” requires knowing which preferences belong to the same
-notification category. Preference grouping is the leading candidate for a post-v0.1 manifest
-addition. Phase 8 skill output should meanwhile write descriptions that convey category membership
-in prose. This phase does not implement grouping.
+notification category. Preference grouping was initially the leading candidate for a post-v0.1
+manifest addition, and Phase 8 skill output was instructed to convey category membership in prose.
+A later live integration tested exhaustive description-level category enumeration and saw no change
+on a capable model. Revisit grouping only when a capable current-generation model fails
+multi-preference intent against evidence-backed descriptions; a weak resolver's failure is not
+sufficient evidence. This phase does not implement grouping.
 
 ## Hosted non-passes and raw output
 
