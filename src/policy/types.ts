@@ -25,6 +25,15 @@ export type PolicyRejectionReason =
  */
 export type PolicyDecision =
   | {
+      /**
+       * Recognizes a clean empty proposal: validation produced zero changes and zero rejections.
+       *
+       * This outcome records only that no changes were proposed. It does not verify the host's
+       * current preference state.
+       */
+      readonly outcome: "already_satisfied";
+    }
+  | {
       /** Allows the host to apply every validated change without further confirmation. */
       readonly outcome: "apply";
 
@@ -84,7 +93,13 @@ export type PolicyDecision =
       readonly changes: readonly PreferenceChange[];
     }
   | {
-      /** Refuses a request that contains no validated changes. */
+      /**
+       * Defensively refuses an empty request that did not cleanly validate with zero rejections.
+       *
+       * This branch is unreachable through the current validator and policy evaluator: rejected
+       * entries produce `proposal_rejected`, while a clean empty proposal produces
+       * `already_satisfied`. It remains in the public union as defense in depth.
+       */
       readonly outcome: "rejected";
 
       /** The stable reason for refusing the empty request. */

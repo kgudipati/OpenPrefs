@@ -157,6 +157,10 @@ const result = await fetch("/api/preferences/request", {
 }).then((r) => r.json());
 
 switch (result.status) {
+  case "already_satisfied":
+    // The resolver proposed no changes; this does not independently verify host state.
+    setMessage("No settings changes were needed.");
+    break;
   case "confirmation_required":
     // Show the user what will change, then POST result.proposal unchanged to:
     // /api/preferences/confirm
@@ -170,6 +174,12 @@ switch (result.status) {
     break;
   case "unsupported":
     setMessage("I couldn't find a setting that controls that.");
+    break;
+  case "rejected":
+    setMessage("One or more proposed changes were refused.");
+    break;
+  case "failed":
+    setMessage("The settings request could not be completed.");
     break;
 }
 ```
@@ -280,7 +290,9 @@ openPrefs.confirm(proposal)      // apply something the user approved
 openPrefs.apply(changes)         // skip the model, change settings directly
 ```
 
-Results are plain data, discriminated by `status`: `applied`, `confirmation_required`, `needs_clarification`, `unsupported`, `rejected`, or `failed`. Nothing throws at runtime.
+Results are plain data, discriminated by `status`: `applied`, `already_satisfied`,
+`confirmation_required`, `needs_clarification`, `unsupported`, `rejected`, or `failed`. Nothing
+throws at runtime.
 
 Full TypeScript types, ESM and CommonJS. See [`docs/architecture.md`](https://github.com/kgudipati/OpenPrefs/blob/main/docs/architecture.md) for the details.
 

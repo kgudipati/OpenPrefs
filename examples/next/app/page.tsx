@@ -63,6 +63,8 @@ function resultMessage(result: OpenPrefsResult): string {
   switch (result.status) {
     case "applied":
       return `Applied ${result.applied.length} preference change${result.applied.length === 1 ? "" : "s"}.`;
+    case "already_satisfied":
+      return "Those settings are already set that way.";
     case "needs_clarification":
       return result.question;
     case "unsupported":

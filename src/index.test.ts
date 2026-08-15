@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
+import type { AlreadySatisfiedResult } from "./index";
 import * as packageEntry from "./index";
 
 const sourceFiles = import.meta.glob<string>("./**/*.ts", {
@@ -21,6 +22,12 @@ describe("package entry point", () => {
       "resolvePolicy",
       "validateProposal",
     ]);
+  });
+
+  it("exports already_satisfied as a type without widening the runtime API", () => {
+    expectTypeOf<AlreadySatisfiedResult>().toEqualTypeOf<{
+      readonly status: "already_satisfied";
+    }>();
   });
 
   it("does not import example code from the publishable source tree", () => {

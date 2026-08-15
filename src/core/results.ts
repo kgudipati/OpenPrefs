@@ -78,6 +78,19 @@ export interface NeedsClarificationResult {
   readonly question: string;
 }
 
+/**
+ * Reports a clean empty proposal: for a natural-language request, the resolver proposed no
+ * changes.
+ *
+ * This status does not assert that OpenPrefs verified the host's current preference state. Hosts
+ * should present it as informational and avoid claiming that OpenPrefs read and confirmed every
+ * requested setting.
+ */
+export interface AlreadySatisfiedResult {
+  /** Discriminates a proposal containing zero validated changes and zero validation rejections. */
+  readonly status: "already_satisfied";
+}
+
 /** Reports that the manifest cannot express the user's request. */
 export interface UnsupportedResult {
   /** Discriminates unsupported natural-language intent. */
@@ -134,7 +147,12 @@ export interface UnknownPreferenceRejectedResult {
   readonly changes: readonly PreferenceChange[];
 }
 
-/** Reports an empty proposal refused because it contains nothing to apply. */
+/**
+ * Reports a defensive empty-proposal refusal that is unreachable through the standard lifecycle.
+ *
+ * Validation failures produce `proposal_rejected`, while a clean proposal with no changes produces
+ * `already_satisfied`. This variant remains in the public union as defense in depth.
+ */
 export interface NoChangesRejectedResult {
   /** Discriminates a policy refusal. */
   readonly status: "rejected";
@@ -163,6 +181,7 @@ export type OpenPrefsResult =
   | AppliedResult
   | ConfirmationRequiredResult
   | NeedsClarificationResult
+  | AlreadySatisfiedResult
   | UnsupportedResult
   | RejectedResult
   | FailedResult;

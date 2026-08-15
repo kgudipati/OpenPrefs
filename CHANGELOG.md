@@ -7,6 +7,12 @@ adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Added
+
+- Added `already_satisfied` to the public result union for clean resolved proposals containing zero
+  changes and zero validation rejections. Hosts that switch exhaustively on `status` must handle
+  the new variant.
+
 ## [0.1.0-beta.2] - 2026-08-15
 
 ### Added

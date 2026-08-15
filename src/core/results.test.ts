@@ -2,6 +2,7 @@ import { expectTypeOf, it } from "vitest";
 import type { ApplyFailure } from "../adapter/types";
 import type { PreferenceChange, SettingsProposal } from "../proposal/types";
 import type {
+  AlreadySatisfiedResult,
   AppliedResult,
   ConfirmationRequiredResult,
   FailedResult,
@@ -33,8 +34,12 @@ it("defines execution result contracts directly in the public result module", ()
     readonly exceedsChangeLimit: boolean;
     readonly preview?: readonly PreferenceChangePreview[];
   }>();
+  expectTypeOf<AlreadySatisfiedResult>().toEqualTypeOf<{
+    readonly status: "already_satisfied";
+  }>();
   expectTypeOf<OpenPrefsResult["status"]>().toEqualTypeOf<
     | "applied"
+    | "already_satisfied"
     | "confirmation_required"
     | "needs_clarification"
     | "unsupported"
