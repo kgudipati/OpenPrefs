@@ -22,8 +22,8 @@ interface ApiResponse {
   readonly error?: string;
 }
 
-async function postPreferences(body: unknown): Promise<ApiResponse> {
-  const response = await fetch("/api/preferences", {
+async function postPreferences(path: "request" | "confirm", body: unknown): Promise<ApiResponse> {
+  const response = await fetch(`/api/preferences/${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
@@ -137,7 +137,7 @@ export default function SettingsPage() {
     }
     setBusy(true);
     try {
-      const payload = await postPreferences({ kind: "request", text: intent });
+      const payload = await postPreferences("request", { text: intent });
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }
@@ -155,7 +155,7 @@ export default function SettingsPage() {
     setBusy(true);
     try {
       // Send the proposal back exactly as received; never reconstruct its changes on the client.
-      const payload = await postPreferences({ kind: "confirm", proposal });
+      const payload = await postPreferences("confirm", { proposal });
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }
@@ -172,7 +172,15 @@ export default function SettingsPage() {
   async function saveControl(changes: Partial<AppSettings>): Promise<void> {
     setBusy(true);
     try {
-      const payload = await postPreferences({ kind: "control", changes });
+      const response = await fetch("/api/preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ changes }),
+      });
+      const payload: ApiResponse = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "The setting could not be saved.");
+      }
       if (payload.state !== undefined) {
         setSettings(payload.state);
       }

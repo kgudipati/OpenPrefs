@@ -93,7 +93,11 @@ merge and validation functions remain private to that module. Preserve one imple
 rules, using this order:
 
 1. Import the route's existing merge and validation functions in-process. Adding only `export` to
-   those functions is not a migration: it changes no behavior, call site, or data.
+   those functions is not a migration: it changes no behavior, call site, or data. In an App Router
+   application this also pulls the route module, including its framework metadata, into library
+   code. That is acceptable adapter glue and is still preferable to duplication. A developer may
+   later extract the shared helper into a `lib` module, but the integration skill must leave that
+   host-code relocation to the developer.
 2. If the route owns authentication, session handling, or side effects the adapter cannot reproduce,
    call the route with `fetch` so the adapter goes through the same boundary as the settings page.
 3. **NEVER copy merge or validation logic from the route into the adapter.** The copies can drift
@@ -129,6 +133,26 @@ return response.ok
 
 Do not recreate route authentication or session behavior inside the adapter merely to avoid the HTTP
 call. Do not bypass route-owned effects by importing only its persistence primitive.
+
+### Hosted resolver timeout compatibility
+
+Node provides `AbortSignal.timeout`, but Jest's jsdom environment does not. When a hosted resolver
+may run under Jest with `testEnvironment: "jsdom"`, attach the timeout signal conditionally so the
+same resolver remains testable there:
+
+```ts
+const timeoutSignal =
+  typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(options.timeoutMs ?? 10_000)
+    : undefined;
+
+const response = await fetch(endpoint, {
+  method: "POST",
+  ...(timeoutSignal === undefined ? {} : { signal: timeoutSignal }),
+});
+```
+
+The guard is only test-environment compatibility; normal Node execution still attaches the timeout.
 
 ## localStorage-backed application
 

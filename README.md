@@ -130,7 +130,7 @@ change, so neither result is a model recommendation: use a current model and run
 ### 4. Wire up a route and a text box
 
 ```ts
-// app/api/settings/nl/route.ts
+// app/api/preferences/request/route.ts
 import { openPrefs } from "@/lib/openprefs";
 
 export async function POST(req: Request) {
@@ -139,15 +139,26 @@ export async function POST(req: Request) {
 }
 ```
 
+```ts
+// app/api/preferences/confirm/route.ts
+import { openPrefs } from "@/lib/openprefs";
+
+export async function POST(req: Request) {
+  const { proposal } = await req.json();
+  return Response.json(await openPrefs.confirm(proposal));
+}
+```
+
 ```tsx
-const result = await fetch("/api/settings/nl", {
+const result = await fetch("/api/preferences/request", {
   method: "POST",
   body: JSON.stringify({ text: input }),
 }).then((r) => r.json());
 
 switch (result.status) {
   case "confirmation_required":
-    // Show the user what will change, then POST result.proposal to confirm
+    // Show the user what will change, then POST result.proposal unchanged to:
+    // /api/preferences/confirm
     setPreview(result.preview);
     break;
   case "applied":

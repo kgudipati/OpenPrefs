@@ -33,6 +33,24 @@ Set `OPENAI_API_KEY` to activate it; without that variable the default CLI remai
 Override the model with `OPENPREFS_MODEL`. No provider SDK is installed because the example uses
 `fetch` directly.
 
+Node provides `AbortSignal.timeout`, but Jest's jsdom environment does not. If this resolver is used
+under Jest with `testEnvironment: "jsdom"`, attach its timeout signal conditionally:
+
+```ts
+const timeoutSignal =
+  typeof AbortSignal.timeout === "function"
+    ? AbortSignal.timeout(options.timeoutMs ?? 10_000)
+    : undefined;
+
+const response = await fetch(endpoint, {
+  // ...request options
+  ...(timeoutSignal === undefined ? {} : { signal: timeoutSignal }),
+});
+```
+
+Normal Node execution takes the guarded branch and still attaches the timeout; only the jsdom test
+environment lacks it.
+
 For a hosted-only run, copy `.env.example` to the gitignored `.env`, fill in the local values, and
 export them into the command environment:
 
