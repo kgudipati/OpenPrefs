@@ -29,7 +29,7 @@ function indentedCodeLine(line) {
  * blocks are scanned, including an unclosed fence that extends to the end of the document.
  *
  * @param {string} markdown Markdown source to inspect.
- * @returns {readonly { line: number }[]} Opening line numbers for matching fenced blocks.
+ * @returns {readonly { line: number }[]} Opening line numbers for matching Markdown code blocks.
  */
 export function findLegacySuccessExamples(markdown) {
   const matches = [];
