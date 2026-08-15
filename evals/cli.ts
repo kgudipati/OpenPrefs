@@ -75,7 +75,10 @@ async function main(): Promise<void> {
   await writeJsonReport(jsonPath, report);
   process.stdout.write(`JSON report: ${jsonPath}\n`);
 
-  if (selection === "keyword" && report.meetsThreshold === false) {
+  if (report.securityContainment.criticalFailure) {
+    process.exitCode = 1;
+  }
+  if (selection === "keyword" && report.resolverAccuracy.meetsThreshold === false) {
     process.exitCode = 1;
   }
   if (
