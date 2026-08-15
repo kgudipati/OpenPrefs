@@ -2,6 +2,21 @@
 
 Entries are ordered newest first.
 
+## 2026-08-14 — Defer a contradictory-request result status
+
+- **Status:** Deferred for v0.x.
+- **Context:** `ResolveResult` cannot express “this request contradicts itself.” Specification
+  section 53 treats contradictory requests as a distinct eval class, but the result union has no
+  corresponding status. In `contradictory-002`, the resolver returned `unsupported`; that is
+  inaccurate because the application expresses both preferences and the request itself is
+  incoherent.
+- **Decision:** Keep the existing result union unchanged during v0.x rather than adding a
+  contradictory-request status to the frozen core.
+- **Compatibility:** A new status is a breaking contract change for exhaustive result consumers. It
+  should be batched with any other post-v0.1 contract changes.
+- **Revisit when:** Evidence shows that hosts need to distinguish an incoherent request from an
+  unsupported one in their user experience.
+
 ## 2026-08-14 — Defer an exported result JSON Schema
 
 - **Decision:** Keep the hosted example's result schema local instead of exporting an OpenPrefs JSON
