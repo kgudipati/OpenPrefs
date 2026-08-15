@@ -1,313 +1,233 @@
 # OpenPrefs
 
-> Natural-language preferences for the app you already built.
+**Let your users change settings by typing what they want.**
 
-OpenPrefs adds a headless semantic layer on top of an application's existing preference system:
-text in, validated preference changes out. It requires no migration, no new preference store, no
-particular UI, and no particular model provider.
+```
+"Only notify me when someone messages me directly, use dark mode,
+ and make the text bigger."
+```
 
-OpenPrefs is not a settings system or an AI model. Your application still owns its settings,
-persistence, user experience, authentication, and execution environment.
+OpenPrefs turns that sentence into validated changes to the settings your app already has — using your existing settings code. No migration, no new database, no required UI, and no model bundled in.
 
-## Natural-language preferences in 20 seconds
+---
+
+## The problem
+
+Your settings page has grown. Users know the outcome they want; they don't know your menu hierarchy.
+
+"Only notify me for direct messages" is one intent. In your app it's five toggles across two sections. So users either give up, or they turn off notifications entirely.
+
+OpenPrefs adds a text box that does the translation.
+
+## How it works
+
+```
+user types a sentence
+        ↓
+   your LLM          ← you bring the model
+        ↓
+proposed changes     ← untrusted, just data
+        ↓
+   OpenPrefs         ← checks every change against what you allow
+        ↓
+your existing settings code
+```
+
+The model never touches your app. It proposes; OpenPrefs verifies against a list of settings you define, then calls the same update function your settings page already calls.
+
+## Install
 
 ```sh
 npm install openprefs
 ```
 
-Save this as `example.mjs` and run it with `node example.mjs`:
+Zero dependencies. Works in Node, the browser, and React Native.
 
-```js
-import { createOpenPrefs, definePreferences } from "openprefs";
+---
 
-const preferences = definePreferences({
-  theme: {
-    type: "string",
-    description: "Application color theme.",
-    enum: ["light", "dark", "system"],
-  },
-});
+## Quickstart (Next.js)
 
-let theme = "system";
-const adapter = {
-  read: () => ({ theme }),
-  apply(changes) {
-    for (const change of changes) {
-      switch (change.id) {
-        case "theme":
-          theme = change.value;
-          break;
-      }
-    }
-    return { ok: true };
-  },
-};
+### 1. Describe the settings you want to expose
 
-const resolver = {
-  async resolve({ text }) {
-    return text.toLowerCase().includes("dark")
-      ? { status: "resolved", changes: [{ id: "theme", value: "dark" }] }
-      : { status: "unsupported" };
-  },
-};
-
-const openPrefs = createOpenPrefs({
-  preferences,
-  adapter,
-  resolver,
-});
-
-const result = await openPrefs.request("use dark mode");
-if (result.status !== "confirmation_required") throw new Error("Expected confirmation");
-
-console.log(result);
-// { status: "confirmation_required", proposal: ..., requiredBy: ["theme"], ... }
-
-console.log(await openPrefs.confirm(result.proposal));
-// { status: "applied", applied: [{ id: "theme", value: "dark" }] }
-```
-
-The resolver selected a candidate change. OpenPrefs treated it as untrusted data, checked the id
-and value against the manifest, and returned `confirmation_required` under the default policy. The
-`confirm()` call above represents explicit user approval; only then did OpenPrefs call the adapter.
-
-## No migration
-
-OpenPrefs is one layer above the preference system you already have:
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│ Your application                                            │
-│ Settings UI, natural-language UI, auth, and confirmation    │
-├─────────────────────────────────────────────────────────────┤
-│ OpenPrefs                                                   │
-│ Manifest → resolver → validation → policy → adapter         │
-├─────────────────────────────────────────────────────────────┤
-│ Your existing preference system                            │
-│ Setters, stores, contexts, files, browser storage, or APIs  │
-└─────────────────────────────────────────────────────────────┘
-```
-
-The adapter calls the same mutation paths the application already trusts. OpenPrefs never
-requires:
-
-- migrating, replacing, or normalizing an existing preference system;
-- adding a new preference store, database, backend, or hosted service;
-- replacing a settings page or adding an OpenPrefs-owned UI;
-- choosing a specific model, model provider, inference SDK, or model runtime;
-- adopting React or any other application framework;
-- sending telemetry to OpenPrefs.
-
-Compatibility still requires a real bridge: developers decide what the manifest exposes and wire
-the adapter to existing operations. The bundled coding-agent skill can generate most of that
-bridge from repository evidence, but developers review the resulting semantic boundary.
-
-## How the manifest works
-
-The manifest is the complete capability whitelist for natural-language preference changes. Stable
-ids map to `boolean`, `string`, or `number` definitions. Descriptions tell the resolver what each
-preference means; string enums and numeric bounds define legal values. Optional defaults document
-and validate the host's default, but do not create state or persistence.
+This is the whitelist. Anything not listed here cannot be changed, no matter what the model says.
 
 ```ts
-const preferences = definePreferences({
-  reducedMotion: {
-    type: "boolean",
-    description: "Whether interface motion and animation are reduced.",
-    default: false,
+// lib/openprefs.ts
+import { createOpenPrefs, definePreferences } from "openprefs";
+import { getSettings, updateSettings } from "@/lib/settings";
+
+const settings = definePreferences({
+  theme: {
+    type: "string",
+    enum: ["light", "dark", "system"],
+    description: "Application color theme.",
   },
   textSize: {
     type: "string",
-    description: "Application text size.",
-    enum: ["small", "medium", "large"],
-    default: "medium",
+    enum: ["small", "medium", "large"], // order matters: "bigger" moves right
+    description: "Size of text throughout the app.",
   },
-  notificationVolume: {
-    type: "number",
-    description: "Notification sound volume from 0 through 10.",
-    minimum: 0,
-    maximum: 10,
+  directMessageNotifications: {
+    type: "boolean",
+    description: "Whether notifications are sent for direct messages.",
+  },
+  marketingNotifications: {
+    type: "boolean",
+    description: "Whether promotional and marketing notifications are sent.",
   },
 });
 ```
 
-Enum declaration order is meaningful. A resolver may treat
-`["small", "medium", "large"]` as ordinal when a relative request such as “make the text bigger”
-and the current value make the direction unambiguous.
+Descriptions matter — they're what the model reads. Write them the way a user would describe the setting.
 
-`definePreferences()` validates and freezes a TypeScript-authored manifest.
-`parsePreferencesJson()` accepts the portable version 1 JSON form. Metadata can classify a
-preference as `sensitive` or set `confirmation: "required"`. The resolver cannot create a
-capability that the manifest does not expose.
-
-## How adapters work
-
-A `PreferencesAdapter` connects validated OpenPrefs changes to existing application code:
+### 2. Point it at your existing settings code
 
 ```ts
 const adapter = {
-  read(ids) {
-    return existingSettingsStore.read(ids);
-  },
+  read: () => getSettings(),
   async apply(changes) {
-    await existingSettingsService.update(changes);
+    await updateSettings(
+      Object.fromEntries(changes.map((c) => [c.id, c.value]))
+    );
     return { ok: true };
   },
 };
 ```
 
-`apply(changes)` is required. It receives only changes that passed the manifest whitelist, type and
-value validation, policy, and any required confirmation. Successful adapters must explicitly
-acknowledge complete application with `{ ok: true }`. Partial or total failures return
-`{ ok: false, failed: [{ id, reason }] }`; missing or malformed acknowledgements fail closed.
+That's it. `updateSettings` is whatever you already have — a Zustand store, a REST call, Prisma, `localStorage`. OpenPrefs doesn't care and doesn't replace it.
 
-`read(ids)` is optional. OpenPrefs supplies every manifest id and accepts any subset of current
-values. Those values help resolvers interpret relative requests and let hosts show before/after
-confirmation previews. A read failure degrades to resolution without current state; OpenPrefs does
-not become the state owner.
+### 3. Bring your model
 
-## Bring your own resolver
+```ts
+const resolver = {
+  async resolve({ text, preferences, current }) {
+    // Send text + settings list to your LLM, ask for JSON back.
+    // Return it directly — OpenPrefs validates it for you.
+    return await askYourModel(text, preferences, current);
+  },
+};
 
-OpenPrefs ships no model, provider SDK, or resolver implementation. A resolver receives the text,
-manifest, and optional current values, then returns one of three data-only outcomes: `resolved`,
-`needs_clarification`, or `unsupported`.
+export const openPrefs = createOpenPrefs({ preferences: settings, adapter, resolver });
+```
 
-The plain TypeScript example includes two resolver implementations:
+Any model, any provider, self-hosted or API. A complete working implementation is in [`examples/typescript`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript) — around 60 lines with `fetch`, no SDK. Typical cost is a fraction of a cent per request on a small model.
 
-- a [deterministic keyword resolver](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/src/keywordResolver.ts)
-  that runs with no model or API key;
-- a [hosted OpenAI resolver](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/src/llmResolver.ts)
-  using `fetch` and structured output, with no provider SDK.
+### 4. Wire up a route and a text box
 
-OpenAI is an example provider, not a requirement. Four representative requests on
-`gpt-5.6-luna` used 2,193 input tokens and 302 output tokens and cost **$0.0008 total** at the
-measured short-context rates. See the
-[inputs and outcomes](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/README.md#verified-cost-and-outcomes).
+```ts
+// app/api/settings/nl/route.ts
+import { openPrefs } from "@/lib/openprefs";
 
-Resolver output remains untrusted even when it conforms to the TypeScript interface. Core inspects
-the runtime value and validates it independently before any mutation.
+export async function POST(req: Request) {
+  const { text } = await req.json();
+  return Response.json(await openPrefs.request(text));
+}
+```
 
-## Coding-agent integration skill
+```tsx
+const result = await fetch("/api/settings/nl", {
+  method: "POST",
+  body: JSON.stringify({ text: input }),
+}).then((r) => r.json());
 
-The package includes `openprefs-integrate`, a coding-agent skill for tracing an application's
-existing preference paths and generating an evidence-backed manifest, adapter glue, tests, and a
-review report. After installation, point an agent at:
+switch (result.status) {
+  case "confirmation_required":
+    // Show the user what will change, then POST result.proposal to confirm
+    setPreview(result.preview);
+    break;
+  case "applied":
+    router.refresh();
+    break;
+  case "needs_clarification":
+    setQuestion(result.question); // "Which notifications?"
+    break;
+  case "unsupported":
+    setMessage("I couldn't find a setting that controls that.");
+    break;
+}
+```
 
-```text
+A full Next.js app with a settings page, a text box, and a confirmation dialog is in [`examples/next`](https://github.com/kgudipati/OpenPrefs/tree/main/examples/next).
+
+---
+
+## What your users get
+
+| They type | What happens |
+| --- | --- |
+| "use dark mode" | One setting changes |
+| "only notify me for DMs" | One intent, five settings updated |
+| "make the text bigger" | Reads the current value, steps up one |
+| "make this less distracting" | Proposes a set of changes, shows them first |
+| "turn off those notifications" | Asks which ones instead of guessing |
+| "make my battery last longer" | Says it can't, rather than inventing a setting |
+
+## Confirmation is on by default
+
+Every change asks the user first until you say otherwise:
+
+```ts
+createOpenPrefs({
+  preferences: settings,
+  adapter,
+  resolver,
+  policy: {
+    confirmation: "sensitive",   // "always" (default) | "sensitive" | "never"
+    maxChangesPerRequest: 10,
+  },
+});
+```
+
+Mark individual settings that should always confirm, no matter the global policy:
+
+```ts
+shareDataWithPartners: {
+  type: "boolean",
+  description: "Whether usage data is shared with partners.",
+  openPrefs: { sensitive: true, confirmation: "required" },
+},
+```
+
+When confirmation is needed you get back the proposed changes with before/after values, so you can render your own dialog. Nothing is written until you call `confirm()`.
+
+## The model can't break anything
+
+OpenPrefs treats every model response as untrusted data. Before a single change reaches your code, it checks that the setting exists in your list, that the value is the right type, that enums match, and that numbers are in range. Anything else is rejected.
+
+The model can only choose among the settings you explicitly listed. It can't invent a setting, run code, or reach anything you didn't expose — including when someone tries to talk it into doing so.
+
+## Already have 40 settings?
+
+The package ships a skill for coding agents. Point yours at:
+
+```
 node_modules/openprefs/skills/openprefs-integrate/SKILL.md
 ```
 
-The skill uses a three-tier model:
+It traces your existing settings — UI labels, stores, API calls, storage — and generates the settings list and adapter for you, without changing how your app works. Settings it can't confidently describe are left commented out with a note, so you fill in the meaning rather than the agent guessing. Then you review what got exposed before shipping.
 
-1. **Tier 1 — active:** a user preference with enough evidence for a precise semantic description;
-   generate an active manifest entry and adapter wiring.
-2. **Tier 2 — needs semantic authoring:** a traced user preference whose meaning is not precise
-   enough; complete the mechanical adapter wiring but keep the manifest entry commented out until
-   a developer supplies real prose.
-3. **Tier 3 — excluded:** internal configuration such as feature flags, API URLs, debug modes,
-   rollout variants, and operational thresholds; do not expose it or add adapter dispatch.
+You can also just write the twenty lines yourself. The skill is optional.
 
-Precision outranks coverage. The skill does not promise automatic compatibility or zero human
-involvement: the developer must review every exposed capability, exclusion, sensitivity choice,
-and confirmation rule.
+---
 
-## Security model
+## API
 
-Every natural-language request passes through the same boundary:
+```ts
+definePreferences(settings)      // define what can be changed
+parsePreferencesJson(json)       // same, from JSON
+createOpenPrefs({ ... })         // create the instance
 
-```text
-user input -> resolver -> UNTRUSTED proposal -> manifest whitelist -> type validation -> value validation -> policy -> confirmation -> adapter
+openPrefs.request(text)          // text in, result out
+openPrefs.confirm(proposal)      // apply something the user approved
+openPrefs.apply(changes)         // skip the model, change settings directly
 ```
 
-The resolver has no execution authority. Validation rejects unknown ids, wrong primitive types,
-enum misses, out-of-range numbers, and malformed proposals. Policy considers the complete proposal,
-enforces the change limit, and decides whether confirmation is required. `confirm(proposal)`
-revalidates and reevaluates the same untrusted data before execution. The host remains responsible
-for authentication, authorization, rendering or escaping resolver text, and ensuring that
-`confirm()` follows real user approval.
+Results are plain data, discriminated by `status`: `applied`, `confirmation_required`, `needs_clarification`, `unsupported`, `rejected`, or `failed`. Nothing throws at runtime.
 
-### Measured eval results
+Full TypeScript types, ESM and CommonJS. See [`docs/architecture.md`](https://github.com/kgudipati/OpenPrefs/blob/main/docs/architecture.md) for the details.
 
-Resolver accuracy and security containment are separate metrics. The committed 45-case suite gave
-these uncurated results:
+## Status
 
-| Resolver | Exact passes | Safe clarifications | Failures | Security containment |
-| --- | ---: | ---: | ---: | ---: |
-| Deterministic keyword resolver | 22/45 | 9 | 14 | **45/45** |
-| `gpt-5.6-luna` | **39/45** | 4 | 2 | **45/45** |
+`0.1.0` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
 
-The hosted resolver's clearest weakness was goal-oriented intent: **1 exact pass, 3 safe
-clarifications, and 1 failure across 5 cases**. It also returned `unsupported` instead of the
-expected clarification for one contradictory request. Preference grouping is not implemented; its
-absence particularly hurts requests such as “only notify me for DMs.”
-
-Containment stayed 45/45 across both resolvers. In one recorded case, the hosted model **was
-successfully manipulated** into proposing `usageAnalytics: true`; sensitive policy returned
-`confirmation_required`, so the adapter received no change. A separate prompt-hardening run caught
-an initial 44/45 containment result before the hosted example instructions were fixed and rerun
-against the unchanged case.
-
-See the [baseline scorecards](https://github.com/kgudipati/OpenPrefs/blob/main/evals/baselines.md)
-for every class, non-pass, token total, raw hosted output, and the full-suite cost.
-
-## Examples
-
-- [Plain TypeScript CLI](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/README.md):
-  deterministic and hosted resolvers, confirmation handling, and an adapter over existing setters.
-- [Next.js App Router integration](https://github.com/kgudipati/OpenPrefs/blob/main/examples/next/README.md):
-  a server-only resolver boundary, API route, confirmation UI, and conventional settings controls
-  using the same mutation path.
-
-Both examples keep model calls outside core tests. The deterministic resolver and scripted test
-resolvers make the full lifecycle testable with no LLM present.
-
-## API reference
-
-OpenPrefs has one package entry point and ships ESM, CommonJS, and TypeScript declarations.
-
-| Runtime export | Purpose |
-| --- | --- |
-| `definePreferences(definitions)` | Validate, normalize, and freeze a typed manifest. |
-| `parsePreferencesJson(input)` | Parse and validate a portable version 1 manifest object. |
-| `createOpenPrefs(options)` | Create the headless `request`, `confirm`, and `apply` lifecycle. |
-| `ManifestError`, `PolicyError` | Programmer-error classes for invalid configuration. |
-
-`createOpenPrefs({ preferences, adapter, resolver, policy? })` returns:
-
-- `request(text)` — resolve text, validate the proposal, evaluate policy, and apply or return a
-  typed non-apply result;
-- `confirm(proposal)` — revalidate a previously returned proposal and apply it as explicitly
-  confirmed;
-- `apply(changes)` — submit programmatic changes through the same validation and policy boundary
-  without calling the resolver.
-
-The default policy is `{ confirmation: "always", maxChangesPerRequest: 10 }`. Expected lifecycle
-outcomes are data, discriminated by `status`: `applied`, `confirmation_required`,
-`needs_clarification`, `unsupported`, `rejected`, or `failed`.
-
-Primary TypeScript contracts include `PreferencesManifest`, `PreferencesResolver`,
-`PreferencesAdapter`, `OpenPrefsPolicy`, `SettingsProposal`, `OpenPrefsResult`,
-`PreferenceChangeFor`, and `PreferencesState`. The package also exports result variants, manifest
-definition types, validation diagnostics, and policy decision types from the same entry point.
-
-### Internal lifecycle stages exposed for testing
-
-These functions are exported so validation and policy stages can be tested in isolation. They are
-not the primary integration surface and may change before 1.0.
-
-| Runtime export | Purpose |
-| --- | --- |
-| `validateProposal(preferences, proposal)` | Validate untrusted proposal data deterministically. |
-| `resolvePolicy(policy?)` | Validate defaults or overrides into a complete frozen policy. |
-| `evaluatePolicy(input)` | Evaluate validated changes against manifest and policy. |
-
-## Pre-1.0 stability
-
-OpenPrefs is at `0.1.0`. The contract may change before 1.0 as real integrations test the current
-boundaries. Known candidates are a dedicated contradictory-request status, an exported result JSON
-Schema, clarification continuation, and preference grouping. Changes will be documented in the
-[changelog](https://github.com/kgudipati/OpenPrefs/blob/main/CHANGELOG.md).
-
-## License
-
-[MIT](https://github.com/kgudipati/OpenPrefs/blob/main/LICENSE)
+MIT
