@@ -7,7 +7,7 @@ describe("resolvePolicy", () => {
   it("fills every default and returns a complete frozen policy", () => {
     const policy = resolvePolicy();
 
-    expect(policy).toEqual({ confirmation: "always", maxChangesPerRequest: 10 });
+    expect(policy).toEqual({ confirmation: "always", maxChangesPerRequest: 25 });
     expect(Object.isFrozen(policy)).toBe(true);
     expectTypeOf(policy).toEqualTypeOf<OpenPrefsPolicy>();
   });
@@ -15,7 +15,7 @@ describe("resolvePolicy", () => {
   it("preserves supported developer overrides while filling omitted settings", () => {
     expect(resolvePolicy({ confirmation: "sensitive" })).toEqual({
       confirmation: "sensitive",
-      maxChangesPerRequest: 10,
+      maxChangesPerRequest: 25,
     });
     expect(resolvePolicy({ confirmation: "never", maxChangesPerRequest: 4 })).toEqual({
       confirmation: "never",

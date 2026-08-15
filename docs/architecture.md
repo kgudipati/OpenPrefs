@@ -82,6 +82,14 @@ The implemented confirmation matrix is:
 global mode `"never"` means the global policy adds no confirmation; it does not mean OpenPrefs never
 confirms, because a preference-level `confirmation: "required"` still applies.
 
+`maxChangesPerRequest` limits only application **without confirmation** and defaults to `25`.
+OpenPrefs computes confirmation before enforcing the limit. An over-limit proposal that already
+requires confirmation remains `confirmation_required` and sets `exceedsChangeLimit: true` on that
+result so the host can emphasize the bulk change during review. The limit adds no ids to
+`requiredBy`. An over-limit proposal that would otherwise be applied is rejected with
+`too_many_changes`, preserving the rule that bulk changes cannot happen silently. Within-limit
+confirmation results set `exceedsChangeLimit: false`.
+
 ## Adapter reads
 
 For every request, `read(ids)` receives all manifest ids. Adapters MAY return any subset, omitting

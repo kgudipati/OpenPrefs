@@ -28,6 +28,7 @@ describe("section 32: sensitive preference confirmation", () => {
       status: "confirmation_required",
       proposal: { changes: [{ id: "diagnosticUploadsEnabled", value: true }] },
       requiredBy: ["diagnosticUploadsEnabled"],
+      exceedsChangeLimit: false,
     });
     expect(update).not.toHaveBeenCalled();
     if (result.status !== "confirmation_required") {

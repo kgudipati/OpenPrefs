@@ -410,6 +410,7 @@ describe("createOpenPrefs", () => {
       status: "confirmation_required",
       proposal: { changes: [{ id: "theme", value: "dark" }] },
       requiredBy: ["theme"],
+      exceedsChangeLimit: false,
       preview: [{ id: "theme", before: "light", after: "dark" }],
     });
     expect(adapter.applyCalls).toHaveLength(0);
@@ -442,8 +443,65 @@ describe("createOpenPrefs", () => {
       status: "confirmation_required",
       proposal: { changes: [{ id: "theme", value: "dark" }] },
       requiredBy: ["theme"],
+      exceedsChangeLimit: false,
     });
     expect(adapter.applyCalls).toHaveLength(0);
+  });
+
+  it("a proposal exceeding the limit can never be applied without confirmation", async () => {
+    const changes = resolved({ id: "theme", value: "dark" }, { id: "volume", value: 5 });
+    const confirmedApply = successfulApply();
+    const confirmationRequired = openPrefsFor({
+      adapter: { apply: confirmedApply },
+      resolver: new ScriptedResolver(changes),
+      policy: { confirmation: "always", maxChangesPerRequest: 1 },
+    });
+
+    const awaitingConfirmation = await confirmationRequired.request("Change theme and volume");
+
+    expect(awaitingConfirmation).toEqual({
+      status: "confirmation_required",
+      proposal: {
+        changes: [
+          { id: "theme", value: "dark" },
+          { id: "volume", value: 5 },
+        ],
+      },
+      requiredBy: ["theme", "volume"],
+      exceedsChangeLimit: true,
+    });
+    expect(confirmedApply).not.toHaveBeenCalled();
+    if (awaitingConfirmation.status !== "confirmation_required") {
+      return;
+    }
+
+    await expect(confirmationRequired.confirm(awaitingConfirmation.proposal)).resolves.toEqual({
+      status: "applied",
+      applied: [
+        { id: "theme", value: "dark" },
+        { id: "volume", value: 5 },
+      ],
+    });
+    expect(confirmedApply).toHaveBeenCalledOnce();
+
+    const silentApply = successfulApply();
+    const confirmationDisabled = openPrefsFor({
+      adapter: { apply: silentApply },
+      resolver: new ScriptedResolver(changes),
+      policy: { confirmation: "never", maxChangesPerRequest: 1 },
+    });
+
+    await expect(confirmationDisabled.request("Change theme and volume")).resolves.toEqual({
+      status: "rejected",
+      reason: "too_many_changes",
+      changes: [
+        { id: "theme", value: "dark" },
+        { id: "volume", value: 5 },
+      ],
+      count: 2,
+      limit: 1,
+    });
+    expect(silentApply).not.toHaveBeenCalled();
   });
 
   it("revalidates a proposal mutated between request and confirm", async () => {

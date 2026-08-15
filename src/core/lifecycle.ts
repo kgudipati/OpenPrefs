@@ -105,6 +105,7 @@ function confirmationResult(
     status: "confirmation_required",
     proposal,
     requiredBy: decision.requiredBy,
+    exceedsChangeLimit: decision.exceedsChangeLimit,
     ...(preview.length === 0 ? {} : { preview: Object.freeze(preview) }),
   });
 }
