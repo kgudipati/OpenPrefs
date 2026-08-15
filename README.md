@@ -204,10 +204,15 @@ createOpenPrefs({
   resolver,
   policy: {
     confirmation: "sensitive",   // "always" (default) | "sensitive" | "never"
-    maxChangesPerRequest: 10,
+    maxChangesPerRequest: 25,     // default; caps application without confirmation
   },
 });
 ```
+
+`maxChangesPerRequest` prevents a large proposal from applying silently; it does not cap what the
+user may review. If an over-limit proposal already requires confirmation, OpenPrefs returns
+`confirmation_required` with `exceedsChangeLimit: true`. If it would otherwise apply immediately,
+OpenPrefs rejects it with `too_many_changes`.
 
 Mark individual settings that should always confirm, no matter the global policy:
 

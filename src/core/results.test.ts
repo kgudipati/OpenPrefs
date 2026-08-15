@@ -1,7 +1,13 @@
 import { expectTypeOf, it } from "vitest";
 import type { ApplyFailure } from "../adapter/types";
-import type { PreferenceChange } from "../proposal/types";
-import type { AppliedResult, FailedResult } from "./results";
+import type { PreferenceChange, SettingsProposal } from "../proposal/types";
+import type {
+  AppliedResult,
+  ConfirmationRequiredResult,
+  FailedResult,
+  OpenPrefsResult,
+  PreferenceChangePreview,
+} from "./results";
 
 it("defines execution result contracts directly in the public result module", () => {
   expectTypeOf<AppliedResult>().toEqualTypeOf<{
@@ -14,4 +20,19 @@ it("defines execution result contracts directly in the public result module", ()
     readonly applied: readonly PreferenceChange[];
     readonly failed: readonly ApplyFailure[];
   }>();
+  expectTypeOf<ConfirmationRequiredResult>().toEqualTypeOf<{
+    readonly status: "confirmation_required";
+    readonly proposal: SettingsProposal;
+    readonly requiredBy: readonly string[];
+    readonly exceedsChangeLimit: boolean;
+    readonly preview?: readonly PreferenceChangePreview[];
+  }>();
+  expectTypeOf<OpenPrefsResult["status"]>().toEqualTypeOf<
+    | "applied"
+    | "confirmation_required"
+    | "needs_clarification"
+    | "unsupported"
+    | "rejected"
+    | "failed"
+  >();
 });

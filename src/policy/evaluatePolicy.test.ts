@@ -101,16 +101,6 @@ function expectedDecision(
   testCase: MatrixCase,
   changes: readonly PreferenceChange[],
 ): PolicyDecision {
-  if (testCase.position === "over") {
-    return {
-      outcome: "rejected",
-      reason: "too_many_changes",
-      changes,
-      count: testCase.count,
-      limit: 2,
-    };
-  }
-
   const sensitiveUnderSensitiveMode =
     testCase.mode === "sensitive" &&
     (testCase.marking === "sensitive" || testCase.marking === "both");
@@ -122,6 +112,17 @@ function expectedDecision(
       outcome: "confirmation_required",
       changes,
       requiredBy: changes.map(({ id }) => id),
+      exceedsChangeLimit: testCase.position === "over",
+    };
+  }
+
+  if (testCase.position === "over") {
+    return {
+      outcome: "rejected",
+      reason: "too_many_changes",
+      changes,
+      count: testCase.count,
+      limit: 2,
     };
   }
 
@@ -158,6 +159,7 @@ describe("evaluatePolicy", () => {
       outcome: "confirmation_required",
       changes,
       requiredBy: ["required.one"],
+      exceedsChangeLimit: false,
     });
   });
 
@@ -193,7 +195,7 @@ describe("evaluatePolicy", () => {
 
     const decision = evaluatePolicy({
       manifest,
-      policy: resolvePolicy({ confirmation: "never" }),
+      policy: resolvePolicy({ confirmation: "never", maxChangesPerRequest: 2 }),
       changes,
       rejections: [],
     });
@@ -202,6 +204,7 @@ describe("evaluatePolicy", () => {
       outcome: "confirmation_required",
       changes,
       requiredBy: ["required.one", "both.one"],
+      exceedsChangeLimit: true,
     });
   });
 

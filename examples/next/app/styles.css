@@ -222,6 +222,14 @@ select {
   line-height: 1.55;
 }
 
+.dialog .limit-warning {
+  padding: 12px 14px;
+  border: 1px solid #e1bd73;
+  border-radius: 10px;
+  color: #654b18;
+  background: #fff6df;
+}
+
 .preview-list {
   overflow: hidden;
   margin: 24px 0;

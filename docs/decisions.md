@@ -2,6 +2,25 @@
 
 Entries are ordered newest first.
 
+## 2026-08-15 — Scope the change limit to silent application
+
+- **Status:** Accepted as a deliberate, signed-off change to frozen core behavior.
+- **Context:** In a live integration with 38 exposed preferences, “turn on only notification sounds”
+  correctly produced 24 changes. The previous default limit of 10 rejected the proposal outright,
+  even though reviewing the changes individually would have provided a safe path forward. Real
+  manifests and category-wide intents are larger than the product specification's examples.
+- **Decision:** Raise the default `maxChangesPerRequest` from 10 to 25. Evaluate confirmation before
+  the limit: an over-limit proposal that already requires confirmation remains
+  `confirmation_required` and carries `exceedsChangeLimit: true`; an over-limit proposal that would
+  otherwise apply remains rejected as `too_many_changes`.
+- **Rationale:** Section 21 protects users from requests such as “fix everything” silently producing
+  many mutations. A proposal the user must review change by change is not silent, so blocking it
+  does not advance that safety goal. The guard still preserves section 21's intent because no
+  over-limit proposal can be applied without confirmation.
+- **Compatibility:** The confirmation result gains one required boolean field, and the default limit
+  changes. Validation, execution, the adapter contract, rejection diagnostics, and runtime exports
+  remain unchanged.
+
 ## 2026-08-15 — Defer preference grouping until a capable-model failure
 
 - **Context:** A live integration tested description-level category enumeration as a substitute for

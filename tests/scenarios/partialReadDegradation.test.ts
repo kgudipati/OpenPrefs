@@ -33,6 +33,7 @@ describe("section 13: partial-read degradation", () => {
       status: "confirmation_required",
       proposal: { changes: [{ id: "diagnosticUploadsEnabled", value: true }] },
       requiredBy: ["diagnosticUploadsEnabled"],
+      exceedsChangeLimit: false,
     });
     expect(update).not.toHaveBeenCalled();
     if (requested.status !== "confirmation_required") {

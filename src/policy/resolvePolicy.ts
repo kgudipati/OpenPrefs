@@ -3,7 +3,8 @@ import type { OpenPrefsPolicy } from "./types";
 
 const defaultPolicy: OpenPrefsPolicy = Object.freeze({
   confirmation: "always",
-  maxChangesPerRequest: 10,
+  // A live 38-preference integration produced a legitimate 24-change category-wide request.
+  maxChangesPerRequest: 25,
 });
 
 /**

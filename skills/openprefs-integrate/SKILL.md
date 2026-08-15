@@ -234,6 +234,14 @@ At setup, do not override the global default `confirmation: "always"` policy. Th
 intentional; the host decides whether and when to relax it after reviewing its own confirmation
 experience and preference boundary.
 
+`maxChangesPerRequest` defaults to 25 and limits only application without confirmation. Real
+manifests are larger than the product specification's examples: a legitimate category-wide intent
+in a 38-preference application produced 24 changes. Do not treat the setting as a cap on proposals
+the user may review. When an over-limit proposal already requires confirmation, OpenPrefs preserves
+`confirmation_required` and sets `exceedsChangeLimit: true`; only an over-limit proposal that would
+otherwise apply silently is rejected as `too_many_changes`. Leave the default in place unless the
+developer chooses a different silent-application threshold for the host.
+
 For every Tier 2 candidate, emit a commented block at the intended manifest location:
 
 ```ts

@@ -6,7 +6,7 @@ export interface OpenPrefsPolicy {
   /** Controls the global confirmation requirement before preferences may be applied. */
   readonly confirmation: "always" | "sensitive" | "never";
 
-  /** Caps the number of validated changes that one request may contain. */
+  /** Caps the number of validated changes that may be applied without confirmation. */
   readonly maxChangesPerRequest: number;
 }
 
@@ -40,6 +40,9 @@ export type PolicyDecision =
 
       /** Preference ids whose global or preference-level rules triggered confirmation. */
       readonly requiredBy: readonly string[];
+
+      /** Whether the proposal exceeds the configured silent-application limit. */
+      readonly exceedsChangeLimit: boolean;
     }
   | {
       /** Refuses the entire request because proposal validation rejected at least one entry. */
@@ -55,19 +58,19 @@ export type PolicyDecision =
       readonly rejections: readonly ProposalRejection[];
     }
   | {
-      /** Refuses the entire request because its validated change count exceeds the limit. */
+      /** Refuses a request that would silently apply more changes than policy permits. */
       readonly outcome: "rejected";
 
       /** The stable reason for refusing the entire request. */
       readonly reason: "too_many_changes";
 
-      /** The validated changes withheld because the request exceeded the limit. */
+      /** The validated changes withheld because they exceeded the silent-application limit. */
       readonly changes: readonly PreferenceChange[];
 
       /** The number of validated changes in the request. */
       readonly count: number;
 
-      /** The configured maximum number of changes allowed in one request. */
+      /** The configured maximum number of changes allowed without confirmation. */
       readonly limit: number;
     }
   | {

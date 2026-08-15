@@ -46,7 +46,7 @@ function rejectedMessage(result: Extract<OpenPrefsResult, { status: "rejected" }
     return `OpenPrefs rejected the proposal during validation: ${diagnostics}`;
   }
   if (result.reason === "too_many_changes") {
-    return `OpenPrefs rejected ${result.count} changes because the limit is ${result.limit}.`;
+    return `OpenPrefs rejected ${result.count} proposed changes because policy.maxChangesPerRequest is ${result.limit}.`;
   }
   if (result.reason === "unknown_preference") {
     return "OpenPrefs rejected the proposal because it named a preference this app does not expose.";
@@ -344,6 +344,13 @@ export default function SettingsPage() {
             <p className="step">Confirmation required</p>
             <h2 id="dialog-title">Review these changes</h2>
             <p>OpenPrefs has validated the proposal but has not changed your settings yet.</p>
+            {confirmation.exceedsChangeLimit && (
+              <p className="limit-warning" role="note">
+                This request proposes {confirmation.proposal.changes.length} changes, more than
+                policy.maxChangesPerRequest permits without confirmation. Review each change
+                carefully.
+              </p>
+            )}
             <div className="preview-list">
               {confirmation.proposal.changes.map((change) => {
                 const id = String(change.id);

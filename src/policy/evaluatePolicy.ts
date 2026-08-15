@@ -49,16 +49,6 @@ export function evaluatePolicy(input: {
     metadataById.set(change.id, definition.openPrefs);
   }
 
-  if (changes.length > policy.maxChangesPerRequest) {
-    return Object.freeze({
-      outcome: "rejected",
-      reason: "too_many_changes",
-      changes: decisionChanges,
-      count: changes.length,
-      limit: policy.maxChangesPerRequest,
-    });
-  }
-
   if (changes.length === 0) {
     return Object.freeze({
       outcome: "rejected",
@@ -80,11 +70,25 @@ export function evaluatePolicy(input: {
     }
   }
 
+  // Compute confirmation before enforcing the change limit: large proposals may proceed through an
+  // already-required review, but the limit must still prevent them from applying silently.
+  const exceedsChangeLimit = changes.length > policy.maxChangesPerRequest;
   if (requiredBy.length > 0) {
     return Object.freeze({
       outcome: "confirmation_required",
       changes: decisionChanges,
       requiredBy: Object.freeze(requiredBy),
+      exceedsChangeLimit,
+    });
+  }
+
+  if (exceedsChangeLimit) {
+    return Object.freeze({
+      outcome: "rejected",
+      reason: "too_many_changes",
+      changes: decisionChanges,
+      count: changes.length,
+      limit: policy.maxChangesPerRequest,
     });
   }
 

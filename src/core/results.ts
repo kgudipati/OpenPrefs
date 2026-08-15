@@ -54,6 +54,9 @@ export interface ConfirmationRequiredResult {
   /** Preference ids whose policy or metadata triggered confirmation. */
   readonly requiredBy: readonly string[];
 
+  /** Whether the proposal exceeds the configured limit for application without confirmation. */
+  readonly exceedsChangeLimit: boolean;
+
   /** Known before-and-after values that can be rendered without another adapter read. */
   readonly preview?: readonly PreferenceChangePreview[];
 }
@@ -93,21 +96,21 @@ export interface ProposalRejectedResult {
   readonly rejections: readonly ProposalRejection[];
 }
 
-/** Reports a proposal refused because it exceeds the configured request limit. */
+/** Reports a proposal refused because it exceeds the limit for unconfirmed application. */
 export interface TooManyChangesRejectedResult {
   /** Discriminates a policy refusal. */
   readonly status: "rejected";
 
-  /** Identifies the configured change limit as the reason for refusal. */
+  /** Identifies the configured silent-application limit as the reason for refusal. */
   readonly reason: "too_many_changes";
 
-  /** Validated changes withheld because the proposal exceeds the limit. */
+  /** Validated changes withheld because the proposal would otherwise apply silently. */
   readonly changes: readonly PreferenceChange[];
 
   /** The validated number of proposed changes. */
   readonly count: number;
 
-  /** The maximum number of changes permitted by policy. */
+  /** The maximum number of changes permitted without confirmation. */
   readonly limit: number;
 }
 
