@@ -51,7 +51,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "verify": "npm run typecheck && npm run lint && npm run test && npm run build && npm run verify:skill-package",
-    "verify:skill-package": "node scripts/verify-skill-package.mjs",
+    "verify:skill-package": "node --test scripts/verify-skill-package.node-test.mjs && node scripts/verify-skill-package.mjs",
     "evals:build": "tsup --config evals/tsup.config.ts",
     "evals": "npm run evals:build && node .evals-dist/cli.js keyword",
     "evals:hosted": "npm run evals:build && node .evals-dist/cli.js hosted"
