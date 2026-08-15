@@ -35,6 +35,30 @@ async function postPreferences(body: unknown): Promise<ApiResponse> {
   return payload;
 }
 
+function rejectedMessage(result: Extract<OpenPrefsResult, { status: "rejected" }>): string {
+  if (result.reason === "proposal_rejected") {
+    const diagnostics = result.rejections
+      .map((rejection) => {
+        const preference = rejection.id === undefined ? "" : ` (${rejection.id})`;
+        return `[${rejection.code}]${preference}: ${rejection.message}`;
+      })
+      .join(" ");
+    return `OpenPrefs rejected the proposal during validation: ${diagnostics}`;
+  }
+  if (result.reason === "too_many_changes") {
+    return `OpenPrefs rejected ${result.count} changes because the limit is ${result.limit}.`;
+  }
+  if (result.reason === "unknown_preference") {
+    return "OpenPrefs rejected the proposal because it named a preference this app does not expose.";
+  }
+  if (result.reason === "no_changes") {
+    return "OpenPrefs rejected the proposal because it did not contain any changes.";
+  }
+
+  const unhandledResult: never = result;
+  return unhandledResult;
+}
+
 function resultMessage(result: OpenPrefsResult): string {
   switch (result.status) {
     case "applied":
@@ -44,20 +68,9 @@ function resultMessage(result: OpenPrefsResult): string {
     case "unsupported":
       return "That request does not match an exposed preference.";
     case "rejected":
-      switch (result.reason) {
-        case "proposal_rejected":
-          return result.rejections.map((rejection) => rejection.message).join(" ");
-        case "too_many_changes":
-          return `OpenPrefs rejected ${result.count} changes because the limit is ${result.limit}.`;
-        case "unknown_preference":
-          return "The proposal named a preference this app does not expose.";
-        case "no_changes":
-          return "The proposal did not contain any changes.";
-        default:
-          return "OpenPrefs rejected the proposal.";
-      }
+      return rejectedMessage(result);
     case "failed":
-      return `The settings infrastructure failed: ${result.error}`;
+      return `A resolver or settings adapter infrastructure failure prevented the request from completing: ${result.error}`;
     case "confirmation_required":
       return "Review the proposed changes before applying them.";
   }
