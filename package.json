@@ -13,7 +13,10 @@
   },
   "sideEffects": false,
   "files": [
-    "dist"
+    "dist",
+    "skills/openprefs-integrate/SKILL.md",
+    "skills/openprefs-integrate/eval.md",
+    "skills/openprefs-integrate/references"
   ],
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
