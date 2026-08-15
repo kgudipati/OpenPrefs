@@ -5,6 +5,31 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+const packageMetadata = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
+const packageLock = JSON.parse(await readFile(join(repositoryRoot, "package-lock.json"), "utf8"));
+const changelog = await readFile(join(repositoryRoot, "CHANGELOG.md"), "utf8");
+const releaseMatch = changelog.match(/^## \[([^\]]+)\] - \d{4}-\d{2}-\d{2}$/m);
+
+if (releaseMatch === null) {
+  throw new Error("CHANGELOG.md must contain a dated release heading.");
+}
+
+const expectedVersion = releaseMatch[1];
+const actualVersions = [
+  ["package.json", packageMetadata.version],
+  ["package-lock.json", packageLock.version],
+  ['package-lock.json packages[""].version', packageLock.packages?.[""]?.version],
+];
+
+for (const [source, actualVersion] of actualVersions) {
+  if (actualVersion !== expectedVersion) {
+    throw new Error(
+      `${source} version '${actualVersion}' does not match expected release version '${expectedVersion}' from CHANGELOG.md.`,
+    );
+  }
+}
+
+const expectedTarballName = `${packageMetadata.name}-${expectedVersion}.tgz`;
 const temporaryRoot = await mkdtemp(join(tmpdir(), "openprefs-skill-package-"));
 
 const documentPaths = [
@@ -54,6 +79,11 @@ try {
   const tarballs = (await readdir(packDirectory)).filter((entry) => entry.endsWith(".tgz"));
   if (tarballs.length !== 1) {
     throw new Error(`Expected one packed tarball, found ${tarballs.length}.`);
+  }
+  if (tarballs[0] !== expectedTarballName) {
+    throw new Error(
+      `Packed tarball '${tarballs[0]}' does not match expected filename '${expectedTarballName}'.`,
+    );
   }
 
   await writeFile(join(installDirectory, "package.json"), '{"private":true}\n');

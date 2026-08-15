@@ -30,6 +30,16 @@ jobs:
       - name: Verify
         run: npm run verify
 
+      - name: Verify tag matches package version
+        shell: bash
+        run: |
+          package_version="$(node -p 'require("./package.json").version')"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [[ "$tag_version" != "$package_version" ]]; then
+            echo "Release tag version '$tag_version' (from '$GITHUB_REF_NAME') does not match package.json version '$package_version'."
+            exit 1
+          fi
+
       - name: Pack
         run: npm pack
 
