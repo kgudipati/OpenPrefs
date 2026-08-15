@@ -86,6 +86,7 @@ function rejectedResult(
 
 function confirmationResult(
   decision: Extract<PolicyDecision, { readonly outcome: "confirmation_required" }>,
+  preferences: PreferencesManifest,
   current?: Readonly<Record<string, unknown>>,
 ): ConfirmationRequiredResult {
   const proposal: SettingsProposal = Object.freeze({
@@ -96,7 +97,15 @@ function confirmationResult(
     for (const { id, value } of decision.changes) {
       const before = readOwnDataProperty(current, id);
       if (before.found) {
-        preview.push(Object.freeze({ id, before: before.value, after: value }));
+        const label = preferences.get(id)?.label;
+        preview.push(
+          Object.freeze({
+            id,
+            ...(label === undefined ? {} : { label }),
+            before: before.value,
+            after: value,
+          }),
+        );
       }
     }
   }
@@ -198,7 +207,7 @@ export async function runProposal<Manifest extends PreferencesManifest>(
       return rejectedResult(decision);
     }
     if (decision.outcome === "confirmation_required" && !input.confirmed) {
-      return confirmationResult(decision, input.current);
+      return confirmationResult(decision, input.preferences, input.current);
     }
     return await executeChanges(input.adapter, decision.changes);
   } catch (error) {

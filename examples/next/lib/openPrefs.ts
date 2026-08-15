@@ -12,25 +12,30 @@ import { readSettings, updateSettings } from "./settings";
 export const preferences = definePreferences({
   theme: {
     type: "string",
+    label: "Appearance",
     description: "Application color theme or appearance mode.",
     enum: ["light", "dark", "system"],
   },
   compactMode: {
     type: "boolean",
+    label: "Compact mode",
     description: "Whether the application uses a compact, dense layout.",
   },
   marketingNotifications: {
     type: "boolean",
+    label: "Marketing notifications",
     description: "Whether marketing and promotional notifications are sent.",
     openPrefs: { confirmation: "required" },
   },
   usageAnalytics: {
     type: "boolean",
+    label: "Usage analytics",
     description: "Whether anonymous usage analytics and telemetry are shared.",
     openPrefs: { sensitive: true },
   },
   profileVisibility: {
     type: "string",
+    label: "Profile visibility",
     description: "Who can see the profile: public, connections, or private.",
     enum: ["public", "connections", "private"],
   },

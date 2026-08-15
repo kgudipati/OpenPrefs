@@ -8,6 +8,7 @@ describe("parsePreferencesJson", () => {
     const definitions = {
       notifications: {
         type: "boolean",
+        label: "Notifications",
         description: "Whether notifications are enabled.",
         default: true,
       },
@@ -30,6 +31,7 @@ describe("parsePreferencesJson", () => {
     const fromTypeScript = definePreferences({
       notifications: {
         type: "boolean",
+        label: "Notifications",
         description: "Whether notifications are enabled.",
         default: true,
       },

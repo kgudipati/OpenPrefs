@@ -36,6 +36,9 @@ export interface PreferenceChangePreview {
   /** The stable manifest-exposed preference id. */
   readonly id: string;
 
+  /** The host application's presentational label, when the manifest defines one. */
+  readonly label?: string;
+
   /** The current value returned by the optional adapter read operation. */
   readonly before: unknown;
 

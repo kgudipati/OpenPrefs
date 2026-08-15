@@ -139,6 +139,18 @@ value assigned by the application's initialized state is evidence of a default a
 Do not infer a default from a value the code never sets, or mistake an observed current value for a
 default. Do not make a constraint broader than the existing setter accepts.
 
+Populate `label` verbatim from the host's own UI label: use the exact string the settings page
+shows. Keep `description` as the standalone, resolver-facing semantic sentence. For example:
+
+```ts
+label: "In-app notifications",
+description: "Whether notifications appear in the in-app badges and drawer.",
+```
+
+A confirmation dialog that renders raw ids such as `notifications.channels.inApp` is the UX
+failure `label` exists to prevent. Do not derive, rewrite, title-case, or otherwise fabricate a
+label when the host has no UI label; omit it and let the host fall back to the id.
+
 OpenPrefs does not support array-valued preferences. Do not flatten an array into multiple invented
 preferences or serialize it into a string. Omit it from the manifest and report it separately as an
 unsupported value shape so the developer can see which genuine preferences the current contract

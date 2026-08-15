@@ -10,6 +10,7 @@ import type { RejectedResult } from "./results";
 const preferences = definePreferences({
   theme: {
     type: "string",
+    label: "Appearance",
     description: "The application color theme.",
     enum: ["light", "dark"],
   },
@@ -119,7 +120,7 @@ describe("createOpenPrefs", () => {
     });
     expect(adapter.state.theme).toBe("dark");
     expect(adapter.readCalls).toEqual([preferences.ids()]);
-    expect(adapter.applyCalls).toHaveLength(1);
+    expect(adapter.applyCalls).toEqual([[{ id: "theme", value: "dark" }]]);
     expect(resolver.inputs).toEqual([
       {
         text: "Use the dark theme",
@@ -411,7 +412,7 @@ describe("createOpenPrefs", () => {
       proposal: { changes: [{ id: "theme", value: "dark" }] },
       requiredBy: ["theme"],
       exceedsChangeLimit: false,
-      preview: [{ id: "theme", before: "light", after: "dark" }],
+      preview: [{ id: "theme", label: "Appearance", before: "light", after: "dark" }],
     });
     expect(adapter.applyCalls).toHaveLength(0);
     if (result.status !== "confirmation_required") {

@@ -7,12 +7,14 @@ describe("definePreferences", () => {
     const manifest = definePreferences({
       "notifications.directMessages": {
         type: "boolean",
+        label: "Direct message notifications",
         description: "Whether direct messages trigger notifications.",
         default: true,
         openPrefs: { confirmation: "required", sensitive: false },
       },
       displayName: {
         type: "string",
+        label: "Display name",
         description: "The public display name.",
         default: "Ada",
       },
@@ -24,6 +26,7 @@ describe("definePreferences", () => {
       },
       textScale: {
         type: "number",
+        label: "Text scale",
         description: "The interface text scale.",
         minimum: 0.5,
         maximum: 2,
@@ -51,6 +54,11 @@ describe("definePreferences", () => {
       enum: ["light", "dark", "system"],
       default: "system",
     });
+    expect(manifest.get("notifications.directMessages")?.label).toBe(
+      "Direct message notifications",
+    );
+    expect(manifest.get("displayName")?.label).toBe("Display name");
+    expect(manifest.get("textScale")?.label).toBe("Text scale");
     expect(manifest.get("missing")).toBeUndefined();
   });
 

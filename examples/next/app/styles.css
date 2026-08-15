@@ -253,6 +253,19 @@ select {
   color: #5b675f;
 }
 
+.change-selection {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.change-selection input {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  accent-color: #376a48;
+}
+
 .preview-row .proposed-value {
   grid-column: 2 / -1;
 }

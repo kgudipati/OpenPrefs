@@ -63,6 +63,22 @@ describe("validateDefinitions", () => {
     ["missing description", { type: "boolean" }, "DESCRIPTION_INVALID"],
     ["empty description", { type: "boolean", description: "   " }, "DESCRIPTION_INVALID"],
     ["non-string description", { type: "boolean", description: 3 }, "DESCRIPTION_INVALID"],
+    ["empty label", { type: "boolean", label: "", description: "A preference." }, "LABEL_INVALID"],
+    [
+      "whitespace-only label",
+      { type: "boolean", label: "   ", description: "A preference." },
+      "LABEL_INVALID",
+    ],
+    [
+      "non-string label",
+      { type: "boolean", label: 3, description: "A preference." },
+      "LABEL_INVALID",
+    ],
+    [
+      "explicitly undefined label",
+      { type: "boolean", label: undefined, description: "A preference." },
+      "LABEL_INVALID",
+    ],
     [
       "unknown boolean key",
       { type: "boolean", description: "A preference.", minimum: 0 },
@@ -206,5 +222,22 @@ describe("validateDefinitions", () => {
 
     expect(manifest.get("empty")?.openPrefs).toEqual({});
     expect(manifest.get("confirmation")?.openPrefs).toEqual({ confirmation: "required" });
+  });
+
+  it("accepts and preserves a presentational label while allowing it to be absent", () => {
+    const manifest = validateDefinitions({
+      labeled: {
+        type: "boolean",
+        label: "In-app notifications",
+        description: "Whether notifications appear in the in-app badges and drawer.",
+      },
+      unlabeled: {
+        type: "boolean",
+        description: "Whether another notification channel is enabled.",
+      },
+    });
+
+    expect(manifest.get("labeled")?.label).toBe("In-app notifications");
+    expect(manifest.get("unlabeled")).not.toHaveProperty("label");
   });
 });

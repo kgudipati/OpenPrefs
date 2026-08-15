@@ -11,9 +11,17 @@ import type {
 } from "./types";
 
 const preferenceIdPattern = /^[a-zA-Z][a-zA-Z0-9]*(?:\.[a-zA-Z][a-zA-Z0-9]*)*$/;
-const booleanKeys = new Set(["type", "description", "default", "openPrefs"]);
-const stringKeys = new Set(["type", "description", "enum", "default", "openPrefs"]);
-const numberKeys = new Set(["type", "description", "minimum", "maximum", "default", "openPrefs"]);
+const booleanKeys = new Set(["type", "label", "description", "default", "openPrefs"]);
+const stringKeys = new Set(["type", "label", "description", "enum", "default", "openPrefs"]);
+const numberKeys = new Set([
+  "type",
+  "label",
+  "description",
+  "minimum",
+  "maximum",
+  "default",
+  "openPrefs",
+]);
 const openPrefsKeys = new Set(["sensitive", "confirmation"]);
 
 function hasOwn(value: Record<string, unknown>, key: string): boolean {
@@ -81,6 +89,7 @@ function normalizeOpenPrefs(value: unknown, id: string): Readonly<OpenPrefsMetad
 
 function normalizeBoolean(
   definition: Record<string, unknown>,
+  label: string | undefined,
   description: string,
   openPrefs: Readonly<OpenPrefsMetadata> | undefined,
   id: string,
@@ -93,6 +102,7 @@ function normalizeBoolean(
 
   return Object.freeze({
     type: "boolean",
+    ...(label === undefined ? {} : { label }),
     description,
     ...(typeof defaultValue === "boolean" ? { default: defaultValue } : {}),
     ...(openPrefs === undefined ? {} : { openPrefs }),
@@ -101,6 +111,7 @@ function normalizeBoolean(
 
 function normalizeString(
   definition: Record<string, unknown>,
+  label: string | undefined,
   description: string,
   openPrefs: Readonly<OpenPrefsMetadata> | undefined,
   id: string,
@@ -137,6 +148,7 @@ function normalizeString(
 
   return Object.freeze({
     type: "string",
+    ...(label === undefined ? {} : { label }),
     description,
     ...(normalizedEnum === undefined ? {} : { enum: normalizedEnum }),
     ...(typeof defaultValue === "string" ? { default: defaultValue } : {}),
@@ -154,6 +166,7 @@ function isFiniteNumber(value: unknown): value is number {
 
 function normalizeNumber(
   definition: Record<string, unknown>,
+  label: string | undefined,
   description: string,
   openPrefs: Readonly<OpenPrefsMetadata> | undefined,
   id: string,
@@ -194,6 +207,7 @@ function normalizeNumber(
 
   return Object.freeze({
     type: "number",
+    ...(label === undefined ? {} : { label }),
     description,
     ...(isFiniteNumber(minimum) ? { minimum } : {}),
     ...(isFiniteNumber(maximum) ? { maximum } : {}),
@@ -221,16 +235,25 @@ function normalizeDefinition(value: unknown, id: string): PreferenceDefinition {
     throwDefinitionError("DESCRIPTION_INVALID", id, "requires a present, non-empty description");
   }
 
+  const labelValue = value.label;
+  if (
+    hasOwn(value, "label") &&
+    (typeof labelValue !== "string" || labelValue.trim().length === 0)
+  ) {
+    throwDefinitionError("LABEL_INVALID", id, "requires its label to be a non-empty string");
+  }
+  const label = typeof labelValue === "string" ? labelValue : undefined;
+
   const openPrefs = hasOwn(value, "openPrefs")
     ? normalizeOpenPrefs(value.openPrefs, id)
     : undefined;
   if (type === "boolean") {
-    return normalizeBoolean(value, description, openPrefs, id);
+    return normalizeBoolean(value, label, description, openPrefs, id);
   }
   if (type === "string") {
-    return normalizeString(value, description, openPrefs, id);
+    return normalizeString(value, label, description, openPrefs, id);
   }
-  return normalizeNumber(value, description, openPrefs, id);
+  return normalizeNumber(value, label, description, openPrefs, id);
 }
 
 /**

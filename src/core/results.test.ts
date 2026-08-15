@@ -20,6 +20,12 @@ it("defines execution result contracts directly in the public result module", ()
     readonly applied: readonly PreferenceChange[];
     readonly failed: readonly ApplyFailure[];
   }>();
+  expectTypeOf<PreferenceChangePreview>().toEqualTypeOf<{
+    readonly id: string;
+    readonly label?: string;
+    readonly before: unknown;
+    readonly after: PreferenceChange["value"];
+  }>();
   expectTypeOf<ConfirmationRequiredResult>().toEqualTypeOf<{
     readonly status: "confirmation_required";
     readonly proposal: SettingsProposal;
