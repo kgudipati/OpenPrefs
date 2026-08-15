@@ -7,12 +7,38 @@ import { fileURLToPath } from "node:url";
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const temporaryRoot = await mkdtemp(join(tmpdir(), "openprefs-skill-package-"));
 
-const documents = [
+const documentPaths = [
+  "docs/architecture.md",
   "skills/openprefs-integrate/SKILL.md",
   "skills/openprefs-integrate/references/adapter-patterns.md",
   "skills/openprefs-integrate/references/classification-guide.md",
   "skills/openprefs-integrate/references/description-guide.md",
 ];
+
+async function findDanglingLinks(packageRoot, layout) {
+  const dangling = [];
+
+  for (const documentPath of documentPaths) {
+    const absoluteDocumentPath = join(packageRoot, documentPath);
+    const contents = await readFile(absoluteDocumentPath, "utf8");
+    const links = contents.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)/g);
+
+    for (const match of links) {
+      const target = match[1];
+      if (/^(?:[a-z]+:|#)/i.test(target)) continue;
+
+      const pathWithoutFragment = decodeURIComponent(target.split("#", 1)[0]);
+      const resolvedTarget = resolve(dirname(absoluteDocumentPath), pathWithoutFragment);
+      try {
+        await access(resolvedTarget);
+      } catch {
+        dangling.push(`${layout}: ${documentPath} -> ${target}`);
+      }
+    }
+  }
+
+  return dangling;
+}
 
 try {
   const packDirectory = join(temporaryRoot, "pack");
@@ -38,32 +64,18 @@ try {
   );
 
   const installedPackage = join(installDirectory, "node_modules", "openprefs");
-  const dangling = [];
-
-  for (const document of documents) {
-    const documentPath = join(installedPackage, document);
-    const contents = await readFile(documentPath, "utf8");
-    const links = contents.matchAll(/!?\[[^\]]*\]\(([^)\s]+)(?:\s+[^)]*)?\)/g);
-
-    for (const match of links) {
-      const target = match[1];
-      if (/^(?:[a-z]+:|#)/i.test(target)) continue;
-
-      const pathWithoutFragment = decodeURIComponent(target.split("#", 1)[0]);
-      const resolvedTarget = resolve(dirname(documentPath), pathWithoutFragment);
-      try {
-        await access(resolvedTarget);
-      } catch {
-        dangling.push(`${document} -> ${target}`);
-      }
-    }
-  }
+  const dangling = [
+    ...(await findDanglingLinks(repositoryRoot, "repository checkout")),
+    ...(await findDanglingLinks(installedPackage, "fresh tarball install")),
+  ];
 
   if (dangling.length > 0) {
-    throw new Error(`Dangling packaged skill references:\n${dangling.join("\n")}`);
+    throw new Error(`Dangling packaged document references:\n${dangling.join("\n")}`);
   }
 
-  console.log(`Verified ${documents.length} skill documents from a fresh tarball install.`);
+  console.log(
+    `Verified ${documentPaths.length} packaged documents in the repository checkout and a fresh tarball install.`,
+  );
 } finally {
   await rm(temporaryRoot, { recursive: true, force: true });
 }
