@@ -32,8 +32,15 @@ export interface OpenAIResolverOptions {
   readonly model?: string;
   /** Alternate Responses-compatible endpoint, primarily for provider swaps. */
   readonly endpoint?: string;
+  /** Maximum provider request duration in milliseconds; defaults to 10 seconds. */
+  readonly timeoutMs?: number;
 }
 
+// OpenAI's `strict: true` requires one root object and every property in `required`. The
+// branch-specific `changes` and `question` fields are therefore nullable, so unsupported output
+// contains `"changes": null`. OpenPrefs tolerates the non-applicable fields because its proposal
+// envelope ignores extra keys, while a resolved proposal with null changes fails because null is
+// not an array. Do not simplify this to a root-level `anyOf`: the live API rejects that schema.
 const resolveResultSchema = {
   type: "object",
   properties: {
@@ -144,9 +151,10 @@ function extractOutputText(responseBody: unknown): string | undefined {
 }
 
 function parseUntrustedResolution(text: string): ResolveResult {
-  // Return parsed model data directly. Do not sanitize or pre-validate it here: OpenPrefs owns
-  // the manifest, type, value, and policy trust boundary that every resolver output must cross.
-  return JSON.parse(text);
+  const parsed: unknown = JSON.parse(text);
+  // This is the single contract cast, not validation: OpenPrefs receives the parsed value directly
+  // and re-validates everything against the manifest, value constraints, and policy boundary.
+  return parsed as ResolveResult;
 }
 
 /**
@@ -156,7 +164,7 @@ function parseUntrustedResolution(text: string): ResolveResult {
  * resolver contract and return the same data-only result shape.
  *
  * @param options - Server-only API credentials plus optional model and endpoint overrides.
- * @returns An OpenPrefs resolver with network and parse failures mapped to unsupported intent.
+ * @returns An OpenPrefs resolver that rejects on provider and parsing failures.
  */
 export function createOpenAIResolver(options: OpenAIResolverOptions): PreferencesResolver {
   const endpoint = options.endpoint ?? "https://api.openai.com/v1/responses";
@@ -166,52 +174,52 @@ export function createOpenAIResolver(options: OpenAIResolverOptions): Preference
 
   return {
     async resolve(input): Promise<ResolveResult> {
-      try {
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${options.apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model,
-            store: false,
-            instructions: [
-              "Resolve natural-language intent only into preferences listed in the manifest.",
-              "Use current values for relative requests.",
-              "Return needs_clarification when multiple meanings remain plausible.",
-              "Return unsupported when the manifest cannot express the request.",
-              "For resolved, return changes and set question to null.",
-              "For needs_clarification, return a question and set changes to null.",
-              "For unsupported, set both changes and question to null.",
-            ].join(" "),
-            input: JSON.stringify({
-              request: input.text,
-              preferences: buildModelContext(input),
-            }),
-            text: {
-              format: {
-                type: "json_schema",
-                name: "openprefs_resolve_result",
-                strict: true,
-                schema: resolveResultSchema,
-              },
-            },
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${options.apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          store: false,
+          instructions: [
+            "Resolve natural-language intent only into preferences listed in the manifest.",
+            "Use current values for relative requests.",
+            "Return needs_clarification when multiple meanings remain plausible.",
+            "Return unsupported when the manifest cannot express the request.",
+            "For resolved, return changes and set question to null.",
+            "For needs_clarification, return a question and set changes to null.",
+            "For unsupported, set both changes and question to null.",
+          ].join(" "),
+          input: JSON.stringify({
+            request: input.text,
+            preferences: buildModelContext(input),
           }),
-        });
+          text: {
+            format: {
+              type: "json_schema",
+              name: "openprefs_resolve_result",
+              strict: true,
+              schema: resolveResultSchema,
+            },
+          },
+        }),
+        signal: AbortSignal.timeout(options.timeoutMs ?? 10_000),
+      });
 
-        if (!response.ok) {
-          return { status: "unsupported" };
-        }
-        const responseBody: unknown = await response.json();
-        const outputText = extractOutputText(responseBody);
-        if (outputText === undefined) {
-          return { status: "unsupported" };
-        }
-        return parseUntrustedResolution(outputText);
-      } catch {
-        return { status: "unsupported" };
+      // `unsupported` is semantic, never an infrastructure fallback. Live Phase 6 verification
+      // proved why: a root-level `anyOf` made every request return HTTP 400, and mapping that schema
+      // failure to `unsupported` falsely told users that their app had no matching setting.
+      if (!response.ok) {
+        throw new Error(`OpenAI Responses API request failed with HTTP ${response.status}.`);
       }
+      const responseBody: unknown = await response.json();
+      const outputText = extractOutputText(responseBody);
+      if (outputText === undefined) {
+        throw new Error("OpenAI Responses API response did not include output text.");
+      }
+      return parseUntrustedResolution(outputText);
     },
   };
 }

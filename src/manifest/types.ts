@@ -32,7 +32,12 @@ export interface StringPreferenceDefinition {
   /** Explains the preference's meaning to a resolver. */
   readonly description: string;
 
-  /** Restricts legal values to this non-empty, duplicate-free list. */
+  /**
+   * Restricts legal values to this non-empty, duplicate-free list.
+   *
+   * Values are stored in declaration order. Resolvers MAY treat their positions as ordinal when
+   * interpreting relative requests.
+   */
   readonly enum?: readonly string[];
 
   /** Documents the host application's default value. */

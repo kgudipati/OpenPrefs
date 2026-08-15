@@ -46,6 +46,18 @@ npm run demo:hosted -- "turn off marketing notifications and use dark mode"
 `demo:hosted` exits with a clear `OPENAI_API_KEY` message instead of attempting an unauthenticated
 provider call. The example reads credentials only from `process.env`; it never loads `.env` itself.
 
+### Verified cost and outcomes
+
+Four representative requests on `gpt-5.6-luna` used 2,193 input tokens and 302 output tokens. They
+cost $0.0008 total at standard short-context pricing, roughly two hundredths of a cent per request:
+
+| Input | Outcome |
+| --- | --- |
+| “turn off marketing notifications and use dark mode” | Resolved both changes; OpenPrefs required confirmation. |
+| “make the text bigger” | Resolved `textSize` from `medium` to `large`; OpenPrefs required confirmation. |
+| “turn off those notifications” | Returned `needs_clarification` with a focused notification question. |
+| “make my battery last longer” | Returned `unsupported` because the manifest exposes no battery preference. |
+
 OpenAI is only the documented example provider. To use another hosted or local resolver, implement
 `PreferencesResolver.resolve(input)`, build context from `input.preferences` and `input.current`,
 and replace the resolver selected in `cli.ts`. Return model output to OpenPrefs as untrusted data;
