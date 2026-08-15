@@ -1,0 +1,12 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "..",
+    "lib": ["ES2022", "DOM"],
+    "paths": {
+      "openprefs": ["src/index.ts"]
+    },
+    "types": ["node"]
+  },
+  "include": ["**/*.ts"]
+}

@@ -71,6 +71,9 @@ jobs:
       - name: Verify
         run: npm run verify
 
+      - name: Run deterministic resolver evals
+        run: npm run evals
+
       - name: Verify plain TypeScript example
         env:
           OPENAI_API_KEY: ""
@@ -84,12 +87,12 @@ jobs:
           npm ci --prefix examples/next
           npm run verify --prefix examples/next
 
-      - name: Verify examples are excluded from the package
+      - name: Verify non-package sources are excluded from the package
         shell: bash
         run: |
           pack_output="$(npm pack --dry-run 2>&1)"
           printf '%s\n' "$pack_output"
-          if printf '%s\n' "$pack_output" | grep -q 'examples/'; then
-            echo "Published package must not contain examples/."
+          if printf '%s\n' "$pack_output" | grep -Eq 'examples/|evals/'; then
+            echo "Published package must not contain examples/ or evals/."
             exit 1
           fi
