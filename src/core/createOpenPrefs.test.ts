@@ -360,6 +360,32 @@ describe("createOpenPrefs", () => {
     expect(hostState).toEqual({ notifications: false });
   });
 
+  it("an unobserved change cannot be assumed redundant", async () => {
+    const hostState: Record<string, unknown> = { theme: "dark", volume: 3 };
+    const changes: readonly PreferenceChange[] = [
+      { id: "theme", value: "dark" },
+      { id: "volume", value: 3 },
+    ];
+    const apply = vi.fn(async (submitted: readonly PreferenceChange[]): Promise<ApplyResult> => {
+      for (const { id, value } of submitted) {
+        hostState[id] = value;
+      }
+      return { ok: true };
+    });
+    const openPrefs = openPrefsFor({
+      adapter: { read: async () => ({ theme: "dark" }), apply },
+      resolver: new ScriptedResolver(resolved(...changes)),
+      policy: { confirmation: "never" },
+    });
+
+    await expect(openPrefs.request("Keep dark mode and volume unchanged")).resolves.toEqual({
+      status: "applied",
+      applied: changes,
+    });
+    expect(apply.mock.calls).toEqual([[changes]]);
+    expect(hostState).toEqual({ theme: "dark", volume: 3 });
+  });
+
   it("rejects a hallucinated preference id and never calls the adapter", async () => {
     const apply = successfulApply();
     const openPrefs = openPrefsFor({
