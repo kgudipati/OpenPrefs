@@ -248,11 +248,12 @@ Install the package, then paste this prompt into Claude Code, Codex, Cursor, or 
 ```text
 Read node_modules/openprefs/skills/openprefs-integrate/SKILL.md and follow it.
 Integrate OpenPrefs with this app's existing working settings implementation.
-Build the manifest, adapter, and createOpenPrefs setup; leave resolver injection to me.
+Build the manifest, adapter, and createOpenPrefs setup. If this app already has
+model API access, implement a resolver using it; otherwise tell me what to provide.
 Do not restructure, migrate, replace, or relocate the existing settings implementation.
 Bind to its current UI, getters, setters, stores, APIs, and persistence paths.
 Produce the skill's report: what was exposed, what was excluded and why, and anything you could not trace.
-I must supply the resolver; point me to https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript.
+For resolver patterns see https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript
 Run the relevant checks and report the results.
 ```
 
