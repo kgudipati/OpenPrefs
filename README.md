@@ -98,6 +98,8 @@ const adapter: PreferencesAdapter<typeof settings> = {
 };
 ```
 
+The `typeof settings` type parameter gives you autocomplete for each change and catches mismatches between your adapter and settings list.
+
 That's it. `updateSettings` is whatever you already have — a Zustand store, a REST call, Prisma, `localStorage`. OpenPrefs doesn't care and doesn't replace it.
 
 ### 3. Bring your model
