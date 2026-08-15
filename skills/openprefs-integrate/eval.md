@@ -6,6 +6,8 @@ Evaluate the skill against each repository under `fixtures/`:
 2. `poor-evidence`: traced settings with ambiguous names and little semantic evidence.
 3. `mixed-architecture`: preferences split across a store, string storage, an account API, and a
    context.
+4. `category-from-structure`: short labels whose notifications category appears only in module and
+   neighbouring-control structure.
 
 ## Procedure
 

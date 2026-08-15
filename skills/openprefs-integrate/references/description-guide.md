@@ -12,6 +12,7 @@ unambiguous API field name. Code establishes mechanics; it does not always estab
 | Evidence | Candidate description | Decision |
 | --- | --- | --- |
 | Label “Direct message notifications” | “Whether notifications are sent for direct messages.” | Good: meaning and category are explicit. |
+| Label “Email alerts,” no broader context | “Whether alerts are delivered by email.” | Tier 1: meaning is clear; retain the label's category term and report that broader category context is absent. |
 | Field `trackingEnabled`, no label or docs | “Whether tracking is enabled.” | Bad: “tracking” remains ambiguous; use Tier 2. |
 | Setter `setCompactMode`, label “Use less spacing” | “Whether the interface uses compact spacing.” | Good: user-facing effect is supported. |
 | Storage key `cfg_x7` and unlabeled toggle | Any active description | Bad: mechanics alone support no meaning; use Tier 2. |
@@ -48,8 +49,10 @@ while a resolver cannot. The same surrounding evidence that disambiguates the co
 carried into its standalone manifest description.
 
 Category recovery is evidence gathering, not permission to infer. If the section, store, API
-grouping, and neighbours do not establish a category, keep searching or classify the candidate as
-Tier 2.
+grouping, and neighbours do not establish a broader category, keep a clearly labeled preference in
+Tier 1. Write the best description the evidence supports, preserve any category term in the label,
+and report that broader category context is absent or inferred. Use Tier 2 only when the preference's
+meaning is unknown, not merely because its surrounding category is thin.
 
 ## Carry category information in prose
 
@@ -140,4 +143,6 @@ For every active entry, answer yes to all of these:
 4. Does it distinguish this preference from adjacent ones?
 5. Does it avoid implementation jargon, unsupported synonyms, and policy promises?
 
-If any answer is no, improve it from evidence or classify the entry as Tier 2.
+If meaning, distinction, or evidentiary support is missing, improve it from evidence or classify the
+entry as Tier 2. If only the broader category is missing, retain a clearly labeled Tier 1 entry,
+preserve the best category term the evidence supplies, and record the category gap in the report.

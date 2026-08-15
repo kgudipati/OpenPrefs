@@ -4,8 +4,8 @@ Expected counts: **Tier 1: 1, Tier 2: 2, Tier 3: 3, untraced: 0**.
 
 ## Tier 1
 
-- `emailAlerts`: the notifications section and visible “Email alerts” label support “Whether
-  notifications are sent by email.” Trace: `legacyControls` -> `setEmailAlerts` -> legacy state.
+- `emailAlerts`: the visible “Email alerts” label and field name support “Whether notifications are
+  sent by email.” Trace: `legacyControls` -> `setEmailAlerts` -> legacy state.
 
 Do not claim which events trigger the email alerts; the fixture contains no such evidence.
 

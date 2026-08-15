@@ -4,11 +4,5 @@ import { setEmailAlerts, setF2, setTrackingEnabled } from "./legacyPreferences";
 export const legacyControls = [
   { key: "trackingEnabled", kind: "toggle", update: setTrackingEnabled },
   { key: "f2", kind: "select", values: ["a", "b", "c"], update: setF2 },
-  {
-    key: "emailAlerts",
-    kind: "toggle",
-    section: "notifications",
-    label: "Email alerts",
-    update: setEmailAlerts,
-  },
+  { key: "emailAlerts", kind: "toggle", label: "Email alerts", update: setEmailAlerts },
 ] as const;

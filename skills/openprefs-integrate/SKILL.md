@@ -145,8 +145,18 @@ description: "Whether email alerts are enabled."
 
 Mirroring a UI label verbatim is usually insufficient. Labels are written for users who can see
 which section they are in; a resolver sees each manifest description without that visual context.
-Recover the category only from repository evidence, never from intuition. If category or specific
-meaning remains unsupported, use Tier 2.
+Recover the category only from repository evidence, never from intuition.
+
+Do not confuse missing category context with missing meaning. A clear user-facing label establishes
+a Tier 1 preference even when its broader category must be inferred or is unavailable. Missing
+**category** context weakens a description; missing **meaning** forces Tier 2. Write the best
+category-carrying description the evidence supports, preserving a category term present in the label
+instead of inventing broader scope. For example, with only the clear label “Email alerts,” keep the
+entry Tier 1 and prefer “Whether alerts are delivered by email” over deactivating it. In the report,
+state whether the category was explicit, inferred, or absent so the developer can strengthen it.
+
+Use Tier 2 when the preference's meaning is unknown, as with `trackingEnabled` or `f2`, not merely
+because surrounding category context is thin.
 
 Likewise, prefer:
 
@@ -271,7 +281,8 @@ possible, and default/unhandled-id failure behavior. Do not require an LLM in te
 Produce a developer-facing report containing:
 
 1. Counts for Tier 1, Tier 2, and Tier 3.
-2. Every Tier 1 entry with its description evidence and traced mutation path.
+2. Every Tier 1 entry with its description evidence, whether its category was explicit, inferred,
+   or absent, and its traced mutation path.
 3. Every Tier 2 entry with the evidence found, the missing semantic evidence, and its completed
    adapter binding.
 4. Every Tier 3 exclusion with the reason it is internal configuration.
