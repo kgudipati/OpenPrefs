@@ -32,7 +32,13 @@ let theme = "system";
 const adapter = {
   read: () => ({ theme }),
   apply(changes) {
-    for (const change of changes) theme = change.value;
+    for (const change of changes) {
+      switch (change.id) {
+        case "theme":
+          theme = change.value;
+          break;
+      }
+    }
     return { ok: true };
   },
 };
@@ -49,15 +55,21 @@ const openPrefs = createOpenPrefs({
   preferences,
   adapter,
   resolver,
-  policy: { confirmation: "never" },
 });
 
-console.log(await openPrefs.request("use dark mode"));
+const result = await openPrefs.request("use dark mode");
+if (result.status !== "confirmation_required") throw new Error("Expected confirmation");
+
+console.log(result);
+// { status: "confirmation_required", proposal: ..., requiredBy: ["theme"], ... }
+
+console.log(await openPrefs.confirm(result.proposal));
 // { status: "applied", applied: [{ id: "theme", value: "dark" }] }
 ```
 
 The resolver selected a candidate change. OpenPrefs treated it as untrusted data, checked the id
-and value against the manifest, evaluated policy, and only then called the adapter.
+and value against the manifest, and returned `confirmation_required` under the default policy. The
+`confirm()` call above represents explicit user approval; only then did OpenPrefs call the adapter.
 
 ## No migration
 
@@ -162,14 +174,15 @@ manifest, and optional current values, then returns one of three data-only outco
 
 The plain TypeScript example includes two resolver implementations:
 
-- a [deterministic keyword resolver](./examples/typescript/src/keywordResolver.ts) that runs with no
-  model or API key;
-- a [hosted OpenAI resolver](./examples/typescript/src/llmResolver.ts) using `fetch` and structured
-  output, with no provider SDK.
+- a [deterministic keyword resolver](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/src/keywordResolver.ts)
+  that runs with no model or API key;
+- a [hosted OpenAI resolver](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/src/llmResolver.ts)
+  using `fetch` and structured output, with no provider SDK.
 
 OpenAI is an example provider, not a requirement. Four representative requests on
 `gpt-5.6-luna` used 2,193 input tokens and 302 output tokens and cost **$0.0008 total** at the
-measured short-context rates. See the [inputs and outcomes](./examples/typescript/README.md#verified-cost-and-outcomes).
+measured short-context rates. See the
+[inputs and outcomes](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/README.md#verified-cost-and-outcomes).
 
 Resolver output remains untrusted even when it conforms to the TypeScript interface. Core inspects
 the runtime value and validates it independently before any mutation.
@@ -234,15 +247,16 @@ successfully manipulated** into proposing `usageAnalytics: true`; sensitive poli
 an initial 44/45 containment result before the hosted example instructions were fixed and rerun
 against the unchanged case.
 
-See the [baseline scorecards](./evals/baselines.md) for every class, non-pass, token total, raw hosted
-output, and the full-suite cost.
+See the [baseline scorecards](https://github.com/kgudipati/OpenPrefs/blob/main/evals/baselines.md)
+for every class, non-pass, token total, raw hosted output, and the full-suite cost.
 
 ## Examples
 
-- [Plain TypeScript CLI](./examples/typescript/README.md): deterministic and hosted resolvers,
-  confirmation handling, and an adapter over existing setters.
-- [Next.js App Router integration](./examples/next/README.md): a server-only resolver boundary,
-  API route, confirmation UI, and conventional settings controls using the same mutation path.
+- [Plain TypeScript CLI](https://github.com/kgudipati/OpenPrefs/blob/main/examples/typescript/README.md):
+  deterministic and hosted resolvers, confirmation handling, and an adapter over existing setters.
+- [Next.js App Router integration](https://github.com/kgudipati/OpenPrefs/blob/main/examples/next/README.md):
+  a server-only resolver boundary, API route, confirmation UI, and conventional settings controls
+  using the same mutation path.
 
 Both examples keep model calls outside core tests. The deterministic resolver and scripted test
 resolvers make the full lifecycle testable with no LLM present.
@@ -256,9 +270,6 @@ OpenPrefs has one package entry point and ships ESM, CommonJS, and TypeScript de
 | `definePreferences(definitions)` | Validate, normalize, and freeze a typed manifest. |
 | `parsePreferencesJson(input)` | Parse and validate a portable version 1 manifest object. |
 | `createOpenPrefs(options)` | Create the headless `request`, `confirm`, and `apply` lifecycle. |
-| `validateProposal(preferences, proposal)` | Validate untrusted proposal data deterministically. |
-| `resolvePolicy(policy?)` | Validate defaults or overrides into a complete frozen policy. |
-| `evaluatePolicy(input)` | Evaluate validated changes against manifest and policy. |
 | `ManifestError`, `PolicyError` | Programmer-error classes for invalid configuration. |
 
 `createOpenPrefs({ preferences, adapter, resolver, policy? })` returns:
@@ -279,13 +290,24 @@ Primary TypeScript contracts include `PreferencesManifest`, `PreferencesResolver
 `PreferenceChangeFor`, and `PreferencesState`. The package also exports result variants, manifest
 definition types, validation diagnostics, and policy decision types from the same entry point.
 
+### Internal lifecycle stages exposed for testing
+
+These functions are exported so validation and policy stages can be tested in isolation. They are
+not the primary integration surface and may change before 1.0.
+
+| Runtime export | Purpose |
+| --- | --- |
+| `validateProposal(preferences, proposal)` | Validate untrusted proposal data deterministically. |
+| `resolvePolicy(policy?)` | Validate defaults or overrides into a complete frozen policy. |
+| `evaluatePolicy(input)` | Evaluate validated changes against manifest and policy. |
+
 ## Pre-1.0 stability
 
 OpenPrefs is at `0.1.0`. The contract may change before 1.0 as real integrations test the current
 boundaries. Known candidates are a dedicated contradictory-request status, an exported result JSON
 Schema, clarification continuation, and preference grouping. Changes will be documented in the
-[changelog](./CHANGELOG.md).
+[changelog](https://github.com/kgudipati/OpenPrefs/blob/main/CHANGELOG.md).
 
 ## License
 
-[MIT](./LICENSE)
+[MIT](https://github.com/kgudipati/OpenPrefs/blob/main/LICENSE)
