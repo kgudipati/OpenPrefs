@@ -1,4 +1,0 @@
-interface:
-  display_name: "Integrate OpenPrefs"
-  short_description: "Bind existing preferences safely to OpenPrefs"
-  default_prompt: "Use $openprefs-integrate to inspect this application and generate an evidence-backed OpenPrefs manifest, adapter, and report without changing its settings architecture."

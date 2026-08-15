@@ -29,6 +29,24 @@ configurable. Err toward omission.
   Never place these in the manifest or active adapter dispatch. List each in the report with the
   reason for exclusion.
 
+## What success looks like
+
+A report containing Tier 2 entries is a **successful outcome**, not an incomplete integration.
+Finding ambiguity and surfacing it is the job. An integration exposing 30 evidence-backed
+preferences is better than one exposing 42 where 12 have fabricated descriptions. You are not being
+measured on how many preferences you activate.
+
+Treat failure modes in this severity order, from most to least harmful:
+
+1. Exposing internal configuration as a user preference.
+2. Activating a preference with a fabricated description.
+3. Restructuring the host application to make the integration cleaner.
+4. Missing a preference entirely.
+
+The last failure is the least harmful because it fails safely as `unsupported`. Do not experience an
+inactive Tier 2 entry as unfinished work and erode toward coverage. Completing its mechanical
+binding, documenting the missing evidence, and leaving it inactive is the correct result.
+
 Read [references/classification-guide.md](references/classification-guide.md) whenever a candidate
 is ambiguous. Read [references/description-guide.md](references/description-guide.md) before
 authoring any manifest descriptions. Read [references/adapter-patterns.md](references/adapter-patterns.md)
@@ -148,10 +166,42 @@ application already uses. Preserve their sync/async behavior and partial-failure
 correct for one adapter to branch across unrelated mechanisms.
 
 Generate complete Tier 2 handlers while keeping them unreachable from OpenPrefs until their
-manifest entries are activated. In TypeScript, a manifest-derived adapter narrows changes to active
-ids, so use a loose `PreferencesAdapter` boundary plus explicit runtime type guards when inactive
-Tier 2 handlers must compile. OpenPrefs still whitelists against the active manifest before calling
-the adapter. Do not use casts to suppress the type system. If there are no Tier 2 entries, prefer
+manifest entries are activated. **The adapter handler IS generated and complete while the manifest
+entry stays commented out. This is deliberate: the mechanical work is done; only the evidence-backed
+sentence is missing.** Do not omit the handler merely because OpenPrefs cannot dispatch to it yet,
+and do not activate the manifest entry merely to make the handler reachable.
+
+For example, keep this Tier 2 manifest entry inactive:
+
+```ts
+// Tier 2: traced from TrackingToggle -> setTrackingEnabled -> preferences storage.
+// Missing: evidence identifying what "tracking" means. Write that sentence to activate.
+// trackingEnabled: {
+//   type: "boolean",
+//   description: "REPLACE WITH EVIDENCE-BACKED USER-FACING MEANING",
+// },
+```
+
+At the same time, generate its complete adapter case using the existing setter:
+
+```ts
+case "trackingEnabled":
+  if (typeof change.value === "boolean") {
+    existingPreferences.setTrackingEnabled(change.value);
+  } else {
+    failed.push({ id: change.id, reason: "Expected a boolean." });
+  }
+  break;
+```
+
+The active manifest remains the whitelist, so OpenPrefs cannot propose this id. When the developer
+supplies the missing sentence and uncomments the entry, no mechanical discovery or setter wiring
+remains to be done.
+
+In TypeScript, a manifest-derived adapter narrows changes to active ids, so use a loose
+`PreferencesAdapter` boundary plus explicit runtime type guards when inactive Tier 2 handlers must
+compile. OpenPrefs still whitelists against the active manifest before calling the adapter. Do not
+use casts to suppress the type system. If there are no Tier 2 entries, prefer
 `PreferencesAdapter<typeof preferences>` for manifest-derived narrowing.
 
 Every generated `apply` switch must have a `default` case that appends a failure containing the
