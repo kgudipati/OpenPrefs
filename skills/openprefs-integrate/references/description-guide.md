@@ -19,6 +19,38 @@ unambiguous API field name. Code establishes mechanics; it does not always estab
 Do not treat an inferred expansion such as “DM,” “P13N,” or “diag” as evidence unless the repository
 defines it.
 
+## Use a two-part procedure
+
+Construct every active description in two explicit passes:
+
+1. **Name the category.** Determine the preference family from repository evidence. Inspect the
+   settings section or heading containing the control, the owning store or module, grouped API
+   fields, and neighbouring preferences. A short UI label often names only the specific choice and
+   relies on this surrounding context to supply the category.
+2. **Name the specific thing within the category.** Determine the exact channel, event, axis, or
+   object from the label, help text, documentation, and traced behavior. Combine it with the category
+   in one user-facing sentence.
+
+Worked example:
+
+```text
+Section: Notifications
+Label: Email alerts
+Category: notifications
+Specific thing: delivery by email
+Description: Whether notifications are sent by email.
+```
+
+Do not write “Whether email alerts are enabled.” That merely turns the label into a sentence and
+drops the category supplied by the notifications section. Mirroring a UI label verbatim is usually
+insufficient because labels are written for users who can already see which section they are in,
+while a resolver cannot. The same surrounding evidence that disambiguates the control must be
+carried into its standalone manifest description.
+
+Category recovery is evidence gathering, not permission to infer. If the section, store, API
+grouping, and neighbours do not establish a category, keep searching or classify the candidate as
+Tier 2.
+
 ## Carry category information in prose
 
 Multi-setting intent depends on relationships that the manifest does not express separately.

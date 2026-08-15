@@ -114,11 +114,41 @@ boundary uncertain, do not activate it.
 ### 5. Author precise manifest entries
 
 Use stable ids that map clearly to the host preference. Preserve host types, legal values, inclusive
-numeric bounds, and documented defaults. Do not make a constraint broader than the existing setter
-accepts.
+numeric bounds, and defaults supported by evidence. A value assigned by the application's initialized
+state is evidence of a default and may be recorded. Do not infer a default from a value the code
+never sets, or mistake an observed current value for a default. Do not make a constraint broader
+than the existing setter accepts.
 
 Descriptions are the dominant resolver input. State what the preference controls in user-facing
-terms and carry category information in prose. Prefer:
+terms. Use this two-part procedure for every description:
+
+1. **Name the category.** Establish the preference family from evidence around the control: its
+   settings section, owning store or module, API field grouping, or neighbouring preferences. A UI
+   label often supplies only the specific part because the user can already see the surrounding
+   section.
+2. **Name the specific thing within that category.** Use the label, help text, documentation, and
+   traced behavior to identify the channel, event, axis, or object this preference controls. Combine
+   both parts in one user-facing sentence.
+
+For example, a control labeled “Email alerts” inside a notifications settings section has category
+**notifications** and specific channel **email**. Write:
+
+```ts
+description: "Whether notifications are sent by email."
+```
+
+Do not merely mirror the label as:
+
+```ts
+description: "Whether email alerts are enabled."
+```
+
+Mirroring a UI label verbatim is usually insufficient. Labels are written for users who can see
+which section they are in; a resolver sees each manifest description without that visual context.
+Recover the category only from repository evidence, never from intuition. If category or specific
+meaning remains unsupported, use Tier 2.
+
+Likewise, prefer:
 
 ```ts
 description: "Whether notifications are sent for direct messages."
@@ -141,10 +171,15 @@ what makes “make the text bigger” resolvable. Preserve non-ordinal host valu
 order, and state the choices in the description when evidence supports their meaning.
 
 Mark privacy, security, data-sharing, and payment-adjacent preferences with
-`openPrefs: { sensitive: true }`. Add `confirmation: "required"` to anything irreversible or
-account-affecting. Consult `docs/architecture.md`: `sensitive` is a classification whose effect
-depends on the global confirmation mode; `confirmation: "required"` is an unconditional floor that
-global policy cannot weaken. Add both when both apply.
+`openPrefs: { sensitive: true }`. Add `confirmation: "required"` only when a change is irreversible
+or carries consequences beyond the preference itself, such as deletion, billing, durable enrollment,
+granting third-party access, or disabling a security control. A reversible privacy or visibility
+preference is sensitive only; it does not require the unconditional floor.
+
+Consult `docs/architecture.md`: `sensitive` is a classification whose effect depends on the global
+confirmation mode, while `confirmation: "required"` is an unconditional floor. Under the default
+policy every change confirms anyway, so `confirmation: "required"` matters only when a developer has
+deliberately selected global mode `"never"`. Reserve it for changes that must still confirm then.
 
 For every Tier 2 candidate, emit a commented block at the intended manifest location:
 
@@ -157,7 +192,9 @@ For every Tier 2 candidate, emit a commented block at the intended manifest loca
 // },
 ```
 
-The placeholder must remain commented out. Never activate placeholder prose.
+The placeholder must remain commented out. Never activate placeholder prose. This commented Tier 2
+block is a deliberate semantic-authoring handoff, not abandoned code; treat it as an explicit
+exception to generic bans on commented-out code.
 
 ### 6. Generate adapter glue against existing operations
 

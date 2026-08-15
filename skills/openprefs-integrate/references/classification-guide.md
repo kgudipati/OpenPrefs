@@ -27,8 +27,17 @@ notifications are sent for direct messages.” This is Tier 1.
 exactly those values. This is Tier 1 with `enum: ["small", "medium", "large"]` in natural order.
 
 `shareUsageData` is labeled “Share anonymous usage data to improve the product.” This is Tier 1 and
-sensitive because it controls data sharing. If changing it also enrolls the account in a durable
-program or has an irreversible effect, add confirmation required; do not infer irreversibility.
+sensitive because it controls data sharing. Add confirmation required only if changing it also
+causes an irreversible effect or a consequence beyond the preference, such as durable enrollment;
+do not infer those consequences.
+
+### Confirmation required
+
+Use `confirmation: "required"` only for irreversible changes or consequences beyond the preference
+itself: deletion, billing, durable enrollment, granting third-party access, or disabling a security
+control. A reversible privacy or visibility preference is `sensitive: true` only. Under the default
+policy every change confirms; the preference-level floor matters when a developer deliberately uses
+global mode `"never"`, so reserve it for changes that must confirm even then.
 
 ### Tier 2: user preference, insufficient meaning
 
@@ -85,9 +94,11 @@ preferences. Exclude them even if they appear on a settings page. OpenPrefs expo
 
 ### Defaults and remote configuration
 
-A default value may document a real preference, but the default itself is not another preference.
-Remote configuration that chooses defaults, limits, or availability is Tier 3 unless a user directly
-controls an enduring value through a traced preference path.
+An initialized state value assigned by application code is evidence of a default and may be recorded
+in the manifest. An observed current value is not necessarily a default, and a value the code never
+sets must not be inferred as one. The default itself is not another preference. Remote configuration
+that chooses defaults, limits, or availability is Tier 3 unless a user directly controls an enduring
+value through a traced preference path.
 
 ## Resolving uncertainty
 
