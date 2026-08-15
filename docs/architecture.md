@@ -111,6 +111,6 @@ receipts remain deliberately deferred.
    confirmation. The implementation treats sensitivity as a classification whose effect depends on
    the global mode. Making it an absolute floor would make the `"sensitive"` and `"never"` modes
    behaviorally identical, collapsing a three-value enum into two behaviors.
-2. **Section 11 — adapter success shape:** Section 11 shows an adapter returning a legacy `success`
-   discriminator set to `true`. That shape is no longer valid. Adapters must affirm complete success
-   with `{ ok: true }`; missing `ok` is a malformed result and fails closed.
+2. **Section 11 — adapter success shape:** Section 11 shows an adapter returning
+   `{ success: true }`. That shape is no longer valid. Adapters must affirm complete success with
+   `{ ok: true }`; missing `ok` is a malformed result and fails closed.

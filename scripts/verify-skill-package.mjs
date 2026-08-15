@@ -3,6 +3,7 @@ import { access, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:f
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { findLegacySuccessExamples } from "./markdown-code-blocks.mjs";
 
 const repositoryRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const packageMetadata = JSON.parse(await readFile(join(repositoryRoot, "package.json"), "utf8"));
@@ -42,8 +43,6 @@ const documentPaths = [
   "skills/openprefs-integrate/references/description-guide.md",
 ];
 
-const forbiddenDocumentStrings = ["success: true"];
-
 async function findMarkdownDocuments(root) {
   const documents = [];
 
@@ -59,15 +58,15 @@ async function findMarkdownDocuments(root) {
   return documents;
 }
 
-async function findForbiddenDocumentStrings(packageRoot) {
+async function findForbiddenDocumentExamples(packageRoot) {
   const matches = [];
 
   for (const documentPath of await findMarkdownDocuments(packageRoot)) {
     const contents = await readFile(documentPath, "utf8");
-    for (const forbidden of forbiddenDocumentStrings) {
-      if (contents.includes(forbidden)) {
-        matches.push(`${relative(packageRoot, documentPath)} contains '${forbidden}'`);
-      }
+    for (const example of findLegacySuccessExamples(contents)) {
+      matches.push(
+        `${relative(packageRoot, documentPath)}:${example.line} contains legacy success syntax in a fenced code block`,
+      );
     }
   }
 
@@ -128,10 +127,10 @@ try {
   );
 
   const installedPackage = join(installDirectory, "node_modules", "openprefs");
-  const forbiddenDocumentMatches = await findForbiddenDocumentStrings(installedPackage);
+  const forbiddenDocumentMatches = await findForbiddenDocumentExamples(installedPackage);
   if (forbiddenDocumentMatches.length > 0) {
     throw new Error(
-      `Forbidden strings found in shipped documents:\n${forbiddenDocumentMatches.join("\n")}`,
+      `Forbidden fenced code examples found in shipped documents:\n${forbiddenDocumentMatches.join("\n")}`,
     );
   }
 
