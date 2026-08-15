@@ -1,12 +1,25 @@
 {
   "name": "openprefs",
-  "version": "0.0.0",
-  "description": "A headless semantic layer for turning natural-language intent into validated changes to existing application preferences.",
+  "version": "0.1.0",
+  "description": "Natural-language preferences for existing apps: text in, validated preference changes out.",
+  "keywords": [
+    "preferences",
+    "settings",
+    "natural-language",
+    "headless",
+    "typescript",
+    "semantic-layer",
+    "ai"
+  ],
   "license": "MIT",
   "type": "module",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kgudipati/OpenPrefs.git"
+  },
+  "homepage": "https://github.com/kgudipati/OpenPrefs#readme",
+  "bugs": {
+    "url": "https://github.com/kgudipati/OpenPrefs/issues"
   },
   "engines": {
     "node": ">=20"
