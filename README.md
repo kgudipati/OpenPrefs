@@ -252,12 +252,15 @@ Build the manifest, adapter, and createOpenPrefs setup. If this app already has
 model API access, implement a resolver using it; otherwise tell me what to provide.
 Do not restructure, migrate, replace, or relocate the existing settings implementation.
 Bind to its current UI, getters, setters, stores, APIs, and persistence paths.
+Add a server-side route and a text input with a confirmation dialog to the existing settings page.
+Keep existing controls unchanged. Follow https://github.com/kgudipati/OpenPrefs/tree/main/examples/next for resolver, route, and UI patterns;
+handle every result status, show labels and before/after values, and pass the returned proposal unmodified to confirm.
 Produce the skill's report: what was exposed, what was excluded and why, and anything you could not trace.
-For resolver patterns see https://github.com/kgudipati/OpenPrefs/tree/main/examples/typescript
 Run the relevant checks; report any pre-existing failures separately from ones you introduced.
 ```
 
-The agent generates the integration files and report; review what it exposed before shipping.
+The agent leaves a working text box and confirmation flow on the existing settings page, plus the
+integration report; review what it exposed before shipping.
 Anything it cannot confidently describe stays commented out for you to complete.
 
 You can also write the manifest and adapter by hand — the skill is optional.
