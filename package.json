@@ -1,6 +1,6 @@
 {
   "name": "openprefs",
-  "version": "0.1.0-beta.2",
+  "version": "0.1.0",
   "description": "Natural-language preferences for existing apps: text in, validated preference changes out.",
   "keywords": [
     "preferences",

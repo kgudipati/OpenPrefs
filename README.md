@@ -37,8 +37,9 @@ The model never touches your app. It proposes; OpenPrefs verifies against a list
 
 ## Install
 
-> **Temporary beta:** OpenPrefs is not yet on npm. Download the beta tarball from GitHub Releases,
-> then install it with `npm install ./openprefs-0.1.0-beta.2.tgz`.
+```sh
+npm install openprefs
+```
 
 Zero dependencies. Works in Node, the browser, and React Native.
 
@@ -298,6 +299,8 @@ Full TypeScript types, ESM and CommonJS. See [`docs/architecture.md`](https://gi
 
 ## Status
 
-`0.1.0-beta.2` — early. The API may change before 1.0 as real apps use it. Feedback and issues welcome.
+`0.1.0` — early. The API may change before 1.0 as real apps use it. Known future changes include
+scoped reads and two-stage resolution, explicit value-availability and `writeOnly` metadata, and
+per-change success receipts. Feedback and issues welcome.
 
 MIT
